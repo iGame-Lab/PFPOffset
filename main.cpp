@@ -451,6 +451,7 @@ struct ApproximateField{
         //TODO 注意分解
         MeshKernel::iGameVertex normal = ((origin_vertices[1] - origin_vertices[0]) % (origin_vertices[2] - origin_vertices[0])).normalize();
         for(int i=0;i<3;i++){
+            //extend_vertices.push_back(field_move_vertex[mesh->fast_iGameFace[fh].vh(i)]);
             if(!in_triangle_positive_side(this->fh,field_move_vertex[mesh->fast_iGameFace[fh].vh(i)])){
                 extend_vertices.push_back(field_move_vertex[mesh->fast_iGameFace[fh].vh(i)]);
             }
@@ -529,8 +530,8 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
         MeshKernel::iGameVertex new_v = v + normal * avg_move_dist;
         avg_move_vertex += normal * avg_move_dist;
 
-        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * 1.1;
-        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * 0.9;
+        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * 1.35;
+        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * 0.8;
 
         double d = -(normal.x() * new_v.x() + normal.y() * new_v.y() +  normal.z() * new_v.z());
 
@@ -650,7 +651,11 @@ struct Fraction{
 
 };
 
-
+/*
+ *  N*N*N 来确定点
+ *   然后保证后，通过格点表面采样法，然后连接边还原
+ *    正负不管了
+ */
 
 
 int main() {
@@ -658,10 +663,10 @@ int main() {
 
     // freopen("../debugoutput.txt","w",stdout);
     default_move = 1;
-    grid_len = 2.2;
+    grid_len = 1.7;
     cout << grid_len <<endl;
     mix_factor = 0.5;
-   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2"));
+  //  mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2"));
 
 //    MeshKernel::iGameVertex v1(100,-1,-1);
 //    MeshKernel::iGameVertex v2(1,-1,-1);
@@ -676,9 +681,18 @@ int main() {
 
     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2"));
 
+    for(int i=0;i<mesh->FaceSize();i++){
+        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = 0.8;
+    }
+
+//    for(int i=0;i<mesh->FaceSize();i++){
+//        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = 0.8;
+//    }
+
     mesh->build_fast();
 
-    mix(50);
+
+  //  mix(30);
 
 //    BVH::BVH_Tree bvhTree;
 //    bvhTree.buildBVH_Tree(*mesh);
@@ -694,8 +708,6 @@ int main() {
 
 
 
-
-
     for(int i=0;i<mesh->VertexSize();i++){
         field_move_vertex[i] = do_quadratic_error_metric(MeshKernel::iGameVertexHandle(i));
     }
@@ -705,45 +717,64 @@ int main() {
     }
 //
 
-    int file_id = 3004;
+    int file_id = 3008;
     FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
     FILE *file0 = fopen(("../data/output" + to_string(file_id) + "_dianyun0.obj").c_str(), "w");
     FILE *file1 = fopen(("../data/output" + to_string(file_id) + "_dianyun1.obj").c_str(), "w");
     FILE *file2 = fopen(("../data/output" + to_string(file_id) + "_dianyun2.obj").c_str(), "w");
     FILE *file10 = fopen(("../data/output" + to_string(file_id) + "_dianyun10.obj").c_str(), "w");
 
-    int cnt=0;
-//    for(int  i =0 ; i< mesh->VertexSize() ; i++){
-//    //    if(flag) {
-////            cout << "origin " <<mesh->fast_iGameVertex[i].x()<<" "<< mesh->fast_iGameVertex[i].y()<<" "<<
-////                    mesh->fast_iGameVertex[i].z()<<endl;
-////            cout << "updated  " <<field_move_vertex[i].x()<<" "<< field_move_vertex[i].y()<<" "<<
-////                    field_move_vertex[i].z()<<endl;
-////            cout <<"***************"<< endl;
-//
-////            cout <<"***************"<< endl;
-//            fprintf(file0, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
-//                   mesh->fast_iGameVertex[i].z());
-//            fprintf(file0, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
-//                    field_move_vertex[i].z());
-//
-////            fprintf(file0, "v %lf %lf %lf\n", min_move_g[i].x(), min_move_g[i].y(),
-////                    min_move_g[i].z());
-//
-//            fprintf(file0,"l %d %d\n",cnt+1,cnt+2);
-//          //  fprintf(file0,"l %d %d\n",cnt+1,cnt+3);
-//            cnt+=2;
-//
-//       // }
-//    }
+    int cnt=1;
+    for(int i=0;i<mesh->FaceSize();i++){
+//        auto v0 = faces_approximate_field[i].extend_vertices[0];
+//        auto v1 = faces_approximate_field[i].extend_vertices[1];
+//        auto v2 = faces_approximate_field[i].extend_vertices[2];
+        //field_move_vertex[i]
+        auto v0 = field_move_vertex[mesh->fast_iGameFace[i].vh(0)];
+        auto v1 = field_move_vertex[mesh->fast_iGameFace[i].vh(1)];
+        auto v2 = field_move_vertex[mesh->fast_iGameFace[i].vh(2)];
+        fprintf(file0, "v %lf %lf %lf\n", v0.x(), v0.y(),v0.z());
+        fprintf(file0, "v %lf %lf %lf\n", v1.x(), v1.y(),v1.z());
+        fprintf(file0, "v %lf %lf %lf\n", v2.x(), v2.y(),v2.z());
+        //fprintf(file0, "f %d %d %d\n", cnt, cnt+1,cnt+2);
+    }
+    for(int i=0;i<mesh->FaceSize();i++){
+        fprintf(file0, "f %d %d %d\n", cnt, cnt+1,cnt+2);
+        cnt+=3;
 
-//    for(int  i =0 ; i< mesh->VertexSize() ; i++){
-//
-//       if((mesh->fast_iGameVertex[i] - field_move_vertex[i]).norm()>100){
-//           fprintf(file0, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),mesh->fast_iGameVertex[i].z());
-//       }
-//
-//    }
+    }
+    cnt=0;
+    for(int  i =0 ; i< mesh->VertexSize() ; i++){
+    //    if(flag) {
+//            cout << "origin " <<mesh->fast_iGameVertex[i].x()<<" "<< mesh->fast_iGameVertex[i].y()<<" "<<
+//                    mesh->fast_iGameVertex[i].z()<<endl;
+//            cout << "updated  " <<field_move_vertex[i].x()<<" "<< field_move_vertex[i].y()<<" "<<
+//                    field_move_vertex[i].z()<<endl;
+//            cout <<"***************"<< endl;
+
+//            cout <<"***************"<< endl;
+            fprintf(file1, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
+                   mesh->fast_iGameVertex[i].z());
+            fprintf(file1, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
+                    field_move_vertex[i].z());
+
+//            fprintf(file0, "v %lf %lf %lf\n", min_move_g[i].x(), min_move_g[i].y(),
+//                    min_move_g[i].z());
+
+            fprintf(file1,"l %d %d\n",cnt+1,cnt+2);
+          //  fprintf(file0,"l %d %d\n",cnt+1,cnt+3);
+            cnt+=2;
+
+       // }
+    }
+
+    for(int  i =0 ; i< mesh->VertexSize() ; i++){
+
+       if((mesh->fast_iGameVertex[i] - field_move_vertex[i]).norm()>100){
+           fprintf(file1, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),mesh->fast_iGameVertex[i].z());
+       }
+
+    }
 
 
     cgal_polygon = make_shared<CGALPolygon>(mesh);
@@ -786,10 +817,6 @@ int main() {
     stz = mesh->BBoxMin.z() - max_move;
 
 
-
-
-
-    mesh->initBBox();
 
     // mesh->init_plane_point();
     //  grid_len = (mesh->BBoxMax.x() - mesh->BBoxMin.x())/50;
@@ -862,7 +889,7 @@ int main() {
  */
 
     std::mutex bfs_mutex;
-    std::vector <std::shared_ptr<std::thread>> bfs_thread_pool(thread_num);
+    std::vector <std::shared_ptr<std::thread> > bfs_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++){
         bfs_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
             for (int face_id = 0; face_id < fsize; face_id++) {
@@ -908,7 +935,7 @@ int main() {
                                      (field_move_vertex[fh.second.vh(1)]-mesh->fast_iGameVertex[fh.second.vh(1)]).norm(),
                                      (field_move_vertex[fh.second.vh(2)]-mesh->fast_iGameVertex[fh.second.vh(2)]).norm()
                                      }.rbegin();
-                            if (dist <  grid_len + fh.second.move_dist ) { //TODO : zheli youhua cheng pianyi juli de shiji jisuan
+                            if (dist <  max(grid_len ,fh.second.move_dist)*1.1 ) { //TODO : zheli youhua cheng pianyi juli de shiji jisuan
                                 q.push(j);
                                 is_visit.insert(j);
                             }
@@ -954,6 +981,87 @@ int main() {
             }
         }, i);
     }
+
+
+    for(int i=0;i<thread_num;i++)
+        each_grid_thread_pool[i]->join();
+
+    std::function<bool(MeshKernel::iGameFace,MeshKernel::iGameVertex)> vertex_in_plane
+    = [&](MeshKernel::iGameFace f,MeshKernel::iGameVertex v){
+                Point_3 p0(mesh->fast_iGameVertex[f.vh(0)].x(),
+                           mesh->fast_iGameVertex[f.vh(0)].y(),
+                           mesh->fast_iGameVertex[f.vh(0)].z());
+                Point_3 p1(mesh->fast_iGameVertex[f.vh(1)].x(),
+                           mesh->fast_iGameVertex[f.vh(1)].y(),
+                           mesh->fast_iGameVertex[f.vh(1)].z());
+                Point_3 p2(mesh->fast_iGameVertex[f.vh(2)].x(),
+                           mesh->fast_iGameVertex[f.vh(2)].y(),
+                           mesh->fast_iGameVertex[f.vh(2)].z());
+                Plane_3 pla(p0,p1,p2);
+                double edge_eps = sqrt(max({(p0-p1).squared_length(),(p2-p1).squared_length(),(p2-p0).squared_length()}))/10;
+                if(sqrt(squared_distance(pla,Point_3(v.x(),v.y(),v.z())))<edge_eps){
+                    return true;
+                }
+                return false;
+    };
+
+    // 上述代码完成距离场建格子的过程 8 ;
+    for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
+        set<MeshKernel::iGameFaceHandle> face_set;
+        vector<MeshKernel::iGameFaceHandle> face_list;
+        for (int j = 0; j < 8; j++) {
+            grid g = getGridFrameVertex(each_grid->first, j);
+            unordered_map<grid, GridVertex, grid_hash, grid_equal>::iterator it = frame_grid_mp.find(g);
+            if (it == frame_grid_mp.end())continue;
+            for (auto k: it->second.face_list) {
+                if(!face_set.count(k)){
+                    face_set.insert(k);
+                    face_list.push_back(k);
+                }
+            }
+        }
+        //cout << face_set.size() << endl;
+        DSU dsu(face_list.size());
+        for(int i=0;i<face_list.size();i++){
+            for(int j=i+1;j<face_list.size();j++){
+                int root_i = dsu.find_root(i);
+                MeshKernel::iGameVertex v0 = mesh->fast_iGameVertex[mesh->fast_iGameFace[j].vh(0)];
+                MeshKernel::iGameVertex v1 = mesh->fast_iGameVertex[mesh->fast_iGameFace[j].vh(1)];
+                MeshKernel::iGameVertex v2 = mesh->fast_iGameVertex[mesh->fast_iGameFace[j].vh(2)];
+                if(vertex_in_plane(mesh->fast_iGameFace[root_i],v0) &&
+                        vertex_in_plane(mesh->fast_iGameFace[root_i],v1) &&
+                        vertex_in_plane(mesh->fast_iGameFace[root_i],v2)) {
+                    dsu.join(i,j);
+                }
+            }
+        }
+        set<int>sse;
+        for(int i=0;i<face_list.size();i++){
+            sse.insert(dsu.find_root(i));
+        }
+
+        //cout << "sse.size(): " << sse.size() << endl;
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return 0;
+
+
     vector<vector<int> >tet_face_order{{0,1,2},{0,1,3},{0,2,3},{1,2,3}};
     // 用cgal
 
@@ -1077,8 +1185,7 @@ int main() {
 //    }
 
 
-    for(int i=0;i<thread_num;i++)
-        each_grid_thread_pool[i]->join();
+
     //thicken_cube_edge_list.resize()
 
     //DSU

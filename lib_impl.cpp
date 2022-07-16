@@ -42,6 +42,7 @@ MeshKernel::iGameVertex cgal_aabbtree_query(const std::vector<MeshKernel::iGameF
 //    cout <<"********************************\n";
 //    cout <<"quv : "<< v.x()<<" "<< v.y()<<" "<< v.z()<<endl;
     auto pp = tree.closest_point_and_primitive(point_query);
+
     // TODO  太近了就搞一下 5555
 //    if( (MeshKernel::iGameVertex(pp.first.x(), pp.first.y(), pp.first.z()) - v).norm() < myeps){
 //        side = 1;
