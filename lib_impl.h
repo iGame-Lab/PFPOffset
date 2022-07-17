@@ -38,6 +38,7 @@
 #include <vector>
 #include <fstream>
 #include <limits>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef K::Point_3 Point_3;
@@ -55,7 +56,7 @@ typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
 typedef K::Tetrahedron_3  Tetrahedron;
 namespace PMP = CGAL::Polygon_mesh_processing;
-
+typedef CGAL::Exact_predicates_exact_constructions_kernel K2;
 
 
 using namespace std;
@@ -101,7 +102,7 @@ public:
 
     bool inMesh(MeshKernel::iGameVertex v) {
         CGAL::Bounded_side res = (*inside)(Point(v.x(), v.y(), v.z()));
-        if (res == CGAL::ON_BOUNDED_SIDE || res == CGAL::ON_BOUNDARY)
+        if (res == CGAL::ON_BOUNDED_SIDE)
             return true;
         return false;
     }

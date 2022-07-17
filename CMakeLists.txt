@@ -38,6 +38,7 @@ add_executable(Thicken2 main.cpp lib_impl.cpp DSU.cpp ${CppFile})
 target_link_libraries(Thicken2
         -lgmp
         -lpthread
+        -lmpfr
         ${Boost_LIBRARY_DIRS}
         OsqpEigen::OsqpEigen
         )
