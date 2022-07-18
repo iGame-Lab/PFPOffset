@@ -5,7 +5,7 @@
 #ifndef THICKEN2_LIB_IMPL_H
 #define THICKEN2_LIB_IMPL_H
 
-#define myeps 1e-8
+#define myeps 1e-6
 
 
 #include <iostream>

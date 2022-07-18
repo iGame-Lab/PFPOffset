@@ -641,6 +641,7 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
         return {QPSolution.coeffRef(0), QPSolution.coeffRef(1), QPSolution.coeffRef(2)};
     }
     else{
+        puts("use avg_move_vertex instead");
         return avg_move_vertex;
     }
 }
@@ -673,12 +674,17 @@ struct Fraction{
 
 };
 
-bool face_through_grid(MeshKernel::iGameVertex small,MeshKernel::iGameVertex big,
-                       vector<MeshKernel::iGameVertex> v){
+bool vertex_in_tiny_grid(const MeshKernel::iGameVertex& small,const MeshKernel::iGameVertex& big,
+                         const MeshKernel::iGameVertex& v){
+    return small.x() <= v.x()  && v.x() <= big.x() &&
+    small.y() <= v.y()  && v.y() <= big.y() &&
+    small.z() <= v.z()  && v.z() <= big.z();
+}
+
+bool face_through_grid(const MeshKernel::iGameVertex& small, const MeshKernel::iGameVertex& big,
+                       const vector<MeshKernel::iGameVertex>& v){
     for(int i=0;i<v.size();i++){
-        if(small.x() <= v[i].x()  && v[i].x() <= big.x() &&
-                small.y() <= v[i].y()  && v[i].y() <= big.y() &&
-                small.z() <= v[i].z()  && v[i].z() <= big.z())
+        if(vertex_in_tiny_grid(small,big,v[i]))
             return true;
     }
     K::Triangle_3 tri(K::Point_3(v[0].x(),v[0].y(),v[0].z()),
@@ -718,7 +724,7 @@ int main() {
 
     // freopen("../debugoutput.txt","w",stdout);
     default_move = 1;
-    grid_len = 2.2;
+    grid_len = 2.5;
     cout << grid_len <<endl;
     mix_factor = 0.5;
     //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2"));
@@ -772,7 +778,7 @@ int main() {
     }
 //
 
-    int file_id = 3011;
+    int file_id = 3013;
     FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
     FILE *file0 = fopen(("../data/output" + to_string(file_id) + "_dianyun0.obj").c_str(), "w");
     FILE *file1 = fopen(("../data/output" + to_string(file_id) + "_dianyun1.obj").c_str(), "w");
@@ -1051,6 +1057,7 @@ int main() {
 
     // 上述代码完成距离场建格子的过程 8 ;
     int tt=0;
+    int sum_grid = 0;
     for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
         if(tt++%5000==0){
             cout << tt <<" // "<<  frame_grid_mp.size() << endl;
@@ -1257,9 +1264,132 @@ int main() {
         }
 
         //cout << "sharp_point_list.size(): "<< sharp_point_list.size() << endl;
+
+        vector<SharpPoint> sharp_point_list_merge;
+        for(int i=0;i<sharp_point_list.size();i++){
+            bool flag = false;
+            for(int j=0;j<sharp_point_list_merge.size() && flag == false;j++){
+                if(sqrt(CGAL::to_double(squared_distance(sharp_point_list_merge[j].p,sharp_point_list[i].p)))<myeps){
+                    flag = true;
+                    for(auto k : sharp_point_list[i].source_face_local_id)
+                        sharp_point_list_merge[j].source_face_local_id.push_back(k);
+                }
+            }
+            if(!flag){
+                sharp_point_list_merge.push_back(sharp_point_list[i]);
+            }
+        }
+        for(int i=0;i<sharp_point_list_merge.size();i++){
+            sort(sharp_point_list_merge[i].source_face_local_id.begin(),sharp_point_list_merge[i].source_face_local_id.end());
+            sharp_point_list_merge[i].source_face_local_id.resize(
+                    unique(sharp_point_list_merge[i].source_face_local_id.begin(),
+                           sharp_point_list_merge[i].source_face_local_id.end())-sharp_point_list_merge[i].source_face_local_id.begin());
+        }
+
+        swap(sharp_point_list_merge,sharp_point_list);
+
         for(auto it : sharp_point_list){
             fprintf(file2,"v %lf %lf %lf\n",CGAL::to_double(it.p.x()),CGAL::to_double(it.p.y()),CGAL::to_double(it.p.z()));
         }
+
+
+        // 注意合并处理 ;
+
+
+
+        double maxlen = grid_len;
+        for(int i=0;i<sharp_point_list.size();i++){
+            for(int j=i+1;j<sharp_point_list.size();j++){
+                double dist = sqrt(CGAL::to_double(squared_distance(sharp_point_list[i].p,sharp_point_list[j].p))/3.0);
+                maxlen = min(maxlen , dist);
+            }
+            for (int j = 0; j < possible_face_list.size(); j++) {
+                bool flag = true;
+                for(int k=0;k<sharp_point_list[i].source_face_local_id.size();k++){
+                    if( dsu.find_root(sharp_point_list[i].source_face_local_id[k]) == dsu.find_root(j))
+                        flag = false;
+                }
+                if (flag) {
+                    MeshKernel::iGameVertex v0j = field_move_vertex[mesh->fast_iGameFace[possible_face_list[j]].vh(0)];
+                    MeshKernel::iGameVertex v1j = field_move_vertex[mesh->fast_iGameFace[possible_face_list[j]].vh(1)];
+                    MeshKernel::iGameVertex v2j = field_move_vertex[mesh->fast_iGameFace[possible_face_list[j]].vh(2)];
+                    K2::Triangle_3 tri(K2::Point_3(v0j.x(),v0j.y(),v0j.z()),
+                                   K2::Point_3(v1j.x(),v1j.y(),v1j.z()),
+                                   K2::Point_3(v2j.x(),v2j.y(),v2j.z()));
+                    double dist = sqrt(CGAL::to_double(squared_distance(sharp_point_list[i].p,tri))/3.0);
+                    maxlen = min(maxlen , dist);
+                }
+            }
+        }
+        int num = 1 ;
+        if(sharp_point_list.size() > 1 ){
+            //cout << sharp_point_list.size() <<" "<< maxlen <<  endl;
+            int div = int((grid_len / maxlen)+1);
+            int d = 0;
+            int tmp = div -1 ;
+            while(tmp){
+                tmp>>=1;d++;
+            }
+            num  = 1 << d;
+           // cout << num << endl;
+            sum_grid+= num;
+        }
+        else
+            sum_grid+= 1;
+        double tiny_grid_len = grid_len/num;
+
+        for(int x=0;x<num;x++)
+            for(int y=0;y<num;y++)
+                for(int z=0;z<num;z++){
+                    MeshKernel::iGameVertex start_pos = small + MeshKernel::iGameVertex(x*tiny_grid_len,
+                                                                 y*tiny_grid_len,
+                                                                 z*tiny_grid_len);
+                    MeshKernel::iGameVertex end_pos = small + MeshKernel::iGameVertex(x * (tiny_grid_len+1),
+                                                                                     y * (tiny_grid_len+1),
+                                                                                     z * (tiny_grid_len+1));
+
+                    int tiny_grid_type = 0;
+                    for(int i = 0 ;i < sharp_point_list.size();i++){
+                        MeshKernel::iGameVertex sharp_vertex(CGAL::to_double(sharp_point_list[i].p.x()),
+                                                        CGAL::to_double(sharp_point_list[i].p.y()),
+                                                        CGAL::to_double(sharp_point_list[i].p.z()));
+                        if(vertex_in_tiny_grid(start_pos,end_pos,sharp_vertex)){
+                            tiny_grid_type = 3;
+                            for(int j=0;j<sharp_point_list[i].source_face_local_id.size();j++){
+
+                            }
+
+                            break;
+                        }
+                    }
+                    if(tiny_grid_type == 3)
+                        continue;
+
+                    // check is type 3 !!!!!!
+
+
+
+
+                    /*
+                     *         for(MeshKernel::iGameFaceHandle i : face_list){
+            vector<MeshKernel::iGameVertex> v;
+            for(int j=0;j<3;j++)
+                v.push_back(field_move_vertex[mesh->fast_iGameFace[i].vh(j)]);
+            if(face_through_grid(small,big,v))
+                possible_face_list.push_back(i);
+        }
+                     */
+
+                }
+
+
+//        if(num >60){
+//           // cout <<"sharp_point_list.size()" <<sharp_point_list.size() << "\n";
+//            for(auto it : sharp_point_list){
+//                fprintf(file10,"v %lf %lf %lf\n",CGAL::to_double(it.p.x()),CGAL::to_double(it.p.y()),CGAL::to_double(it.p.z()));
+//            }
+//        }
+
         //vertex_in_grid
 
 
@@ -1270,7 +1400,7 @@ int main() {
 
         //cout << "sse.size(): " << sse.size() << endl;
     }
-
+    cout << sum_grid << endl;
     // 二类面判断交点在什么方向;
 
 
