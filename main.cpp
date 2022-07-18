@@ -1099,6 +1099,8 @@ int main() {
 
 
         DSU dsu(possible_face_list.size());
+        vector<vector<int> >plane_cross;
+        plane_cross.resize(possible_face_list.size());
         for(int i=0;i<possible_face_list.size();i++){
             for(int j=i+1;j<possible_face_list.size();j++){
                 int root_i = dsu.find_root(i);
@@ -1112,10 +1114,20 @@ int main() {
                 MeshKernel::iGameVertex v1j = field_move_vertex[mesh->fast_iGameFace[possible_face_list[j]].vh(1)];
                 MeshKernel::iGameVertex v2j = field_move_vertex[mesh->fast_iGameFace[possible_face_list[j]].vh(2)];
 
+                K::Triangle_3 tri_face1(Point_3(v0i.x(),v0i.y(),v0i.z()),
+                                        Point_3(v1i.x(),v1i.y(),v1i.z()),
+                                        Point_3(v2i.x(),v2i.y(),v2i.z()));
+                K::Triangle_3 tri_face2(Point_3(v0j.x(),v0j.y(),v0j.z()),
+                                        Point_3(v1j.x(),v1j.y(),v1j.z()),
+                                        Point_3(v2j.x(),v2j.y(),v2j.z()));
+
+
+
                 double edge_eps = sqrt(max({(v0i-v1i).norm(),(v2i-v1i).norm(),(v0i-v2i).norm()}))/15;
                 if(vertex_in_plane(pla_i,v0j,edge_eps) &&
                         vertex_in_plane(pla_i,v1j,edge_eps) &&
-                        vertex_in_plane(pla_i,v2j,edge_eps)) {
+                        vertex_in_plane(pla_i,v2j,edge_eps) &&
+                        sqrt(squared_distance(tri_face1,tri_face2)) < myeps) { //并且直接相连 ;;;;
                     dsu.join(i,j);
                 }
             }
@@ -1199,6 +1211,10 @@ int main() {
                             }
                         }
                         if (const K2::Segment_3 * s = boost::get<K2::Segment_3 >(&*result)) {
+                            plane_cross[dsu.find_root(i)].push_back(dsu.find_root(j));
+                            plane_cross[dsu.find_root(j)].push_back(dsu.find_root(i));
+
+
                             // std::cout << (*p) << std::endl;
 //                            cout <<"tri:" <<tri_i.has_on(s->point(0))<<" "<< tri_i.has_on(s->point(1))<<" "
 //                            <<  tri_j.has_on(s->point(0))<<" "<< tri_j.has_on(s->point(1)) << endl;
@@ -1268,7 +1284,7 @@ int main() {
         vector<SharpPoint> sharp_point_list_merge;
         for(int i=0;i<sharp_point_list.size();i++){
             bool flag = false;
-            for(int j=0;j<sharp_point_list_merge.size() && flag == false;j++){
+            for(int j=0;j<sharp_point_list_merge.size() && !flag; j++){
                 if(sqrt(CGAL::to_double(squared_distance(sharp_point_list_merge[j].p,sharp_point_list[i].p)))<myeps){
                     flag = true;
                     for(auto k : sharp_point_list[i].source_face_local_id)
@@ -1338,49 +1354,79 @@ int main() {
             sum_grid+= 1;
         double tiny_grid_len = grid_len/num;
 
-        for(int x=0;x<num;x++)
-            for(int y=0;y<num;y++)
-                for(int z=0;z<num;z++){
-                    MeshKernel::iGameVertex start_pos = small + MeshKernel::iGameVertex(x*tiny_grid_len,
-                                                                 y*tiny_grid_len,
-                                                                 z*tiny_grid_len);
-                    MeshKernel::iGameVertex end_pos = small + MeshKernel::iGameVertex(x * (tiny_grid_len+1),
-                                                                                     y * (tiny_grid_len+1),
-                                                                                     z * (tiny_grid_len+1));
 
-                    int tiny_grid_type = 0;
-                    for(int i = 0 ;i < sharp_point_list.size();i++){
-                        MeshKernel::iGameVertex sharp_vertex(CGAL::to_double(sharp_point_list[i].p.x()),
-                                                        CGAL::to_double(sharp_point_list[i].p.y()),
-                                                        CGAL::to_double(sharp_point_list[i].p.z()));
-                        if(vertex_in_tiny_grid(start_pos,end_pos,sharp_vertex)){
-                            tiny_grid_type = 3;
-                            for(int j=0;j<sharp_point_list[i].source_face_local_id.size();j++){
 
-                            }
-
-                            break;
-                        }
-                    }
-                    if(tiny_grid_type == 3)
-                        continue;
-
-                    // check is type 3 !!!!!!
+        /*
+         * 三类格子
+         *  1356 行的地方先确定相交确定为两个
+         *  两条然后相交线延长出去
+         *  做格子外壳与三角面片求交
+         *  然后连线
+         *  正负方向通过在tet内外搞
+         *  能写！
+         *  二类格子
+         *
+         */
 
 
 
 
-                    /*
-                     *         for(MeshKernel::iGameFaceHandle i : face_list){
-            vector<MeshKernel::iGameVertex> v;
-            for(int j=0;j<3;j++)
-                v.push_back(field_move_vertex[mesh->fast_iGameFace[i].vh(j)]);
-            if(face_through_grid(small,big,v))
-                possible_face_list.push_back(i);
-        }
-                     */
 
-                }
+
+
+//        for(int i=0;i<sharp_point_list.size();i++){
+//            for(int k1 = 0;k1<sharp_point_list[i].source_face_local_id.size();k1++)
+//            {
+//                for(int k2 = 0;k2<sharp_point_list[i].source_face_local_id.size();k2++){
+//                    if(k1!=k2){
+//
+//                    }
+//                }
+//            }
+//        }
+
+//        for(int x=0;x<num;x++)
+//            for(int y=0;y<num;y++)
+//                for(int z=0;z<num;z++){
+//                    MeshKernel::iGameVertex start_pos = small + MeshKernel::iGameVertex(x*tiny_grid_len,
+//                                                                 y*tiny_grid_len,
+//                                                                 z*tiny_grid_len);
+//                    MeshKernel::iGameVertex end_pos = small + MeshKernel::iGameVertex(x * (tiny_grid_len+1),
+//                                                                                     y * (tiny_grid_len+1),
+//                                                                                     z * (tiny_grid_len+1));
+//
+//                    int tiny_grid_type = 0;
+//                    for(int i = 0 ;i < sharp_point_list.size();i++){
+//                        MeshKernel::iGameVertex sharp_vertex(CGAL::to_double(sharp_point_list[i].p.x()),
+//                                                        CGAL::to_double(sharp_point_list[i].p.y()),
+//                                                        CGAL::to_double(sharp_point_list[i].p.z()));
+//                        if(vertex_in_tiny_grid(start_pos,end_pos,sharp_vertex)){
+//                            tiny_grid_type = 3;
+//                            for(int j=0;j<sharp_point_list[i].source_face_local_id.size();j++) {
+//
+//                            }
+//                            break;
+//                        }
+//                    }
+//                    if(tiny_grid_type == 3)
+//                        continue;
+//
+//                    // check is type 3 !!!!!!
+//
+//
+//
+//
+//                    /*
+//                     *         for(MeshKernel::iGameFaceHandle i : face_list){
+//            vector<MeshKernel::iGameVertex> v;
+//            for(int j=0;j<3;j++)
+//                v.push_back(field_move_vertex[mesh->fast_iGameFace[i].vh(j)]);
+//            if(face_through_grid(small,big,v))
+//                possible_face_list.push_back(i);
+//        }
+//                     */
+//
+//                }
 
 
 //        if(num >60){
