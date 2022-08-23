@@ -26,7 +26,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Polygon_mesh_processing/IO/polygon_mesh_io.h>
-#include <CGAL/boost/graph/Named_function_parameters.h>
+
 #include <CGAL/point_generators_3.h>
 #include <CGAL/squared_distance_3.h>
 #include <CGAL/Side_of_triangle_mesh.h>
