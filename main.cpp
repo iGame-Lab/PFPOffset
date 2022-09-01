@@ -464,6 +464,7 @@ int vertex_state(std::vector<MeshKernel::iGameFaceHandle>face_list, MeshKernel::
 
 vector<MeshKernel::iGameVertex> field_move_vertex;
 vector<vector<MeshKernel::iGameVertex> > field_move_face;
+vector<K2::Triangle_3> field_move_K2_triangle;
 
 //vector<vector<int> >approximate_field_face_table = {{0,1,2},{3,4,5},{0,2,4},{4,3,0},{1,5,4},{4,2,1},{0,3,5},{5,1,0}};
 
@@ -1004,6 +1005,16 @@ void sort_by_polar_order(vector<K2::Point_3>& v,MeshKernel::iGameVertex orthogon
     return ;
 }
 
+bool segment_in_line(K2::Segment_3 a,K2::Segment_3  b){
+    CGAL::Epeck::FT d0 = CGAL::squared_distance(a.supporting_line(),b.vertex(0));
+    CGAL::Epeck::FT d1 = CGAL::squared_distance(a.supporting_line(),b.vertex(1));
+    if(d0 < CGAL::Epeck::FT(myeps) &&
+            d1 < CGAL::Epeck::FT(myeps) &&
+            abs(CGAL::to_double(d1-d0)) < myeps)
+        return true;
+    return false;
+}
+
 
 int main() {
 
@@ -1012,8 +1023,17 @@ int main() {
 //    auto c3 = c1*c2;
 //    cout << CGAL::to_double(c3) << endl;
 //    return 0;
-    file_id = 3035;
+    file_id = 3081;
     FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
+
+    vector<FILE*> part_debug_file_list(10);
+
+    vector<int > part_id;
+    for(int i=0;i<10;i++){
+        part_debug_file_list[i] =  fopen(("../data/output" + to_string(file_id) + "_part"+ to_string(i)+".obj").c_str(), "w");
+        part_id.push_back(0 );
+    }
+
     FILE *file0 = fopen(("../data/output" + to_string(file_id) + "_dianyun0.obj").c_str(), "w");
     FILE *file1 = fopen(("../data/output" + to_string(file_id) + "_dianyun1.obj").c_str(), "w");
     FILE *file2 = fopen(("../data/output" + to_string(file_id) + "_dianyun2.obj").c_str(), "w");
@@ -1051,10 +1071,10 @@ int main() {
 //    return 0;
 
 
-    // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 2.5;
+     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 4.5; double default_move_dist =2;
 
 
-    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 10; double default_move_dist = 0.8;
+    //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 10; double default_move_dist = 0.8;
 
 //    for(int i=0;i<mesh->FaceSize();i++){
 //        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = 0.05;
@@ -1082,7 +1102,7 @@ int main() {
     max_move_g.resize(mesh->VertexSize());
 
     field_move_face.resize(mesh->FaceSize());
-
+    field_move_K2_triangle.resize(mesh->FaceSize());
 
     for(int i=0;i<mesh->VertexSize();i++){
         field_move_vertex[i] = do_quadratic_error_metric(MeshKernel::iGameVertexHandle(i));
@@ -1104,13 +1124,16 @@ int main() {
         if(normal * normal_o <0){
             field_move_face[i]=vector<MeshKernel::iGameVertex>{v0,v2,v1};
            //field_move_face[i]=vector<MeshKernel::iGameVertex>{v0,v1,v2};
-           auto center = (v0 + v1 + v2)/3;
-            fprintf(file9,"v %lf %lf %lf\n",center.x(),center.y(),center.z());
+            auto center = (v0 + v1 + v2)/3;
         }
         else{
             field_move_face[i]=vector<MeshKernel::iGameVertex>{v0,v1,v2};
         }
+        field_move_K2_triangle[i] = K2::Triangle_3(iGameVertex_to_Point_K2(field_move_face[i][0]),
+                                                   iGameVertex_to_Point_K2(field_move_face[i][1]),
+                                                   iGameVertex_to_Point_K2(field_move_face[i][2]));
     }
+
 
 
 //
@@ -1241,6 +1264,7 @@ int main() {
     int fsize = mesh->FaceSize();
 
 
+
 //    double avg_area=0;
 //    vector<bool>need_tiny_face;
 //    need_tiny_face.resize(mesh->FaceSize());
@@ -1280,6 +1304,11 @@ int main() {
     for(int i=0;i<thread_num;i++)
         bfs_thread_pool[i]->join();
  */
+
+    //1.463933 19.793690 -4.492545
+    cout << vertex_to_grid({1.463933,19.793690,-4.492545}).x <<" "<< vertex_to_grid({1.463933,19.793690,-4.492545}).y <<" "
+    <<vertex_to_grid({1.463933,19.793690,-4.492545}).z << endl;
+
     cout <<"bfs end \n" << endl;
     std::mutex bfs_mutex;
     std::vector <std::shared_ptr<std::thread> > bfs_thread_pool(thread_num);
@@ -1368,6 +1397,7 @@ int main() {
                 if(each_grid_cnt % (thread_num*1000) == now_id)
                     printf("each_grid_cnt %d/%d\n",each_grid_cnt,(int)frame_grid_mp.size());
 
+
                 MeshKernel::iGameVertex grid_vertex = getGridVertex(each_grid->first, 0);
                 MeshKernel::iGameFaceHandle near_face_handle =
                         triangle_map[*cgal_global_aabbtree.closest_point_and_primitive(
@@ -1404,6 +1434,23 @@ int main() {
     };
 
     long long  sum_grid = 0;
+    for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++){
+        auto small  = getGridVertex(each_grid->first,0);
+        auto big  = getGridVertex(each_grid->first,7);
+        static int f3_id = 1;
+        for (int ii = 0; ii < 7; ii++) {
+            for (int jj = 0; jj < DirectedGridEdge[ii].size(); jj++) {
+                int from = ii;
+                int to = DirectedGridEdge[ii][jj];
+                MeshKernel::iGameVertex fv = getTinyGridVertex(small, big, from);
+                MeshKernel::iGameVertex tv = getTinyGridVertex(small, big, to);
+                fprintf(file3, "v %lf %lf %lf\n", fv.x(), fv.y(), fv.z());
+                fprintf(file3, "v %lf %lf %lf\n", tv.x(), tv.y(), tv.z());
+                fprintf(file3, "l %d %d\n", f3_id, f3_id + 1);
+                f3_id += 2;
+            }
+        }
+    }
 
     // 上述代码完成距离场建格子的过程 8 ;
     atomic<int>sum_face_size(0);
@@ -1419,6 +1466,7 @@ int main() {
                     cout <<id <<" "<< tt << " // " <<" "<< frame_grid_mp.size() << endl;
                 }
                 if(tt % thread_num != id)continue;
+
 
                 function<int(MeshKernel::iGameVertex, MeshKernel::iGameFaceHandle,
                              const vector<MeshKernel::iGameVertex>)> vertex_in_tet_field_state
@@ -1456,8 +1504,25 @@ int main() {
                         }
                     }
                 }
+
+
+                function<int(MeshKernel::iGameVertex)> get_side_type = [&](MeshKernel::iGameVertex igame_p2) {
+                    int side_type = 0;
+                    //cout <<"******\n" << vf.size() << " "<<face_list.size() << endl;
+                    cgal_aabbtree_query(vf, igame_p2, mesh, side_type, cgal_polygon);
+                    return side_type;
+                };
                 MeshKernel::iGameVertex small = getGridVertex(each_grid->first, 0);
                 MeshKernel::iGameVertex big = getGridVertex(each_grid->first, 7);
+
+//                if(each_grid->first.x == 14 && each_grid->first.y == 16 && each_grid->first.z == 12 ){
+//                    auto center = (small + big)/2;
+//                    fprintf(file6,"v %lf %lf %lf\n",center.x(),center.y(),center.z());
+//                }
+//                else
+//                    continue;
+
+
                 bool all_in = false;
                 for (MeshKernel::iGameFaceHandle i: face_list) {
                     vector<MeshKernel::iGameVertex> v;
@@ -1560,6 +1625,7 @@ int main() {
                                     ret.push_back(*cross_vertex.begin());
                                 }
 
+
                             }
 
 
@@ -1574,7 +1640,10 @@ int main() {
                // cout <<"********1****" << endl;
                 static int vid = 1;
                 int xx=0;
-                for(MeshKernel::iGameFaceHandle fh : possible_face_list){
+                vector<vector<K2::Triangle_3> > face_inner_grid_part(possible_face_list.size());
+                for(int poss_face_id=0;poss_face_id < possible_face_list.size();poss_face_id++){
+
+                    MeshKernel::iGameFaceHandle fh = possible_face_list[poss_face_id];
                     vector<K2::Point_3 > res = get_grid_intersect_triangle(field_move_face[fh][0],field_move_face[fh][1],field_move_face[fh][2],
                                                                            small,big);
                     for(int j=0;j<3;j++){
@@ -1591,7 +1660,7 @@ int main() {
 //                        fprintf(file7, "v %lf %lf %lf\n",tt.x(),tt.y(),tt.z());
 //                    }
 //                    continue;
-                    vector<K2::Triangle_3>first_divided_face;
+
                     MeshKernel::iGameVertex center(0,0,0);
                     vector<K2::Point_3 > triangle_vertex_list;
                     for(auto j: res){
@@ -1604,23 +1673,120 @@ int main() {
 
                     sort_by_polar_order(
                             triangle_vertex_list, origin_direct);
+                    //*****************************************************
+                    // 修改triangle list
+
+
+
+
                     if(triangle_vertex_list.size() <2 )continue;
                     MeshKernel::iGameVertex v0 = Point_K2_to_iGameVertex(triangle_vertex_list[0]);
                     for (int i = 0; i < triangle_vertex_list.size()-2; i++) {
                         MeshKernel::iGameVertex v1 = Point_K2_to_iGameVertex(triangle_vertex_list[i + 1]);
                         MeshKernel::iGameVertex v2 = Point_K2_to_iGameVertex(triangle_vertex_list[i + 2]);
+                        auto triangle_vertex_list_i1 = triangle_vertex_list[i + 1];
+                        auto triangle_vertex_list_i2 = triangle_vertex_list[i + 2];
                         MeshKernel::iGameVertex now_direct = (v1 - v0) % (v2 - v0);
-                        if (now_direct * origin_direct < 0)
+                        if (now_direct * origin_direct < 0) {
                             swap(v1, v2);
+                            swap(triangle_vertex_list_i1, triangle_vertex_list_i2);
+                        }
+                        //if(!(each_grid->first.x == 14 && each_grid->first.y == 16 && each_grid->first.z == 12 ))continue;
 
-                        first_divided_face.push_back(K2::Triangle_3(iGameVertex_to_Point_K2(v0),
-                                                                    iGameVertex_to_Point_K2(v1),
-                                                                    iGameVertex_to_Point_K2(v2)));
+                        face_inner_grid_part[poss_face_id].push_back(K2::Triangle_3(triangle_vertex_list[0],
+                                                                                    triangle_vertex_list_i1,
+                                                                                    triangle_vertex_list_i2));
+
+//                        std::unique_lock<std::mutex> lock(mu);
+//                        static int xxx = 0;
+//                        fprintf(file6, "v %lf %lf %lf\n", v0.x(), v0.y(), v0.z());
+//                        fprintf(file6, "v %lf %lf %lf\n", v1.x(), v1.y(), v1.z());
+//                        fprintf(file6, "v %lf %lf %lf\n", v2.x(), v2.y(), v2.z());
+//                        fprintf(file6, "f %d %d %d\n", xxx + 1, xxx + 2, xxx + 3);
+//                        xxx += 3;
+
+//                        if(i<10){
+//                            std::unique_lock<std::mutex>lock(mu);
+//                            fprintf(part_debug_file_list[i],"v %lf %lf %lf\n",v0.x(),v0.y(),v0.z());
+//                            fprintf(part_debug_file_list[i],"v %lf %lf %lf\n",v1.x(),v1.y(),v1.z());
+//                            fprintf(part_debug_file_list[i],"v %lf %lf %lf\n",v2.x(),v2.y(),v2.z());
+//                            fprintf(part_debug_file_list[i],"f %d %d %d\n",part_id[i]+1,part_id[i]+2,part_id[i]+3);
+//                            part_id[i]+=3;
+//
+//                        }
                     }
-                    int tmp = maxx_face_size;
-                    maxx_face_size=max((int)first_divided_face.size(),tmp);
-                    sum_face_size+=first_divided_face.size();
-                    vector<K2::Triangle_3>second_divided_face;
+
+//                    if(!(each_grid->first.x == 14 && each_grid->first.y == 16 && each_grid->first.z == 12 ))
+//                        continue;
+
+
+                    //todo : debug code and recover before
+
+//                    if(triangle_vertex_list.size() <3 )continue;
+//                    MeshKernel::iGameVertex cc(0,0,0);
+//                    for(int iii=0;iii<triangle_vertex_list.size();iii++)
+//                        cc+=Point_K2_to_iGameVertex(triangle_vertex_list[iii]);
+//                    cc /= triangle_vertex_list.size();
+//
+//                    for (int i = 0; i < triangle_vertex_list.size(); i++) {
+//                        MeshKernel::iGameVertex v1 = Point_K2_to_iGameVertex(triangle_vertex_list[i]);
+//                        MeshKernel::iGameVertex v2 = Point_K2_to_iGameVertex(triangle_vertex_list[(i+1) % triangle_vertex_list.size()]);
+//                        MeshKernel::iGameVertex now_direct = (cc - v1) % (cc - v2);
+//                        if (now_direct * origin_direct < 0)
+//                            swap(v1, v2);
+//                        static int file5id = 0;
+//                        std::unique_lock<std::mutex>lock(mu);
+//                        fprintf(file4,"v %lf %lf %lf\n",cc.x(),cc.y(),cc.z());
+//                        fprintf(file4,"v %lf %lf %lf\n",v1.x(),v1.y(),v1.z());
+//                        fprintf(file4,"v %lf %lf %lf\n",v2.x(),v2.y(),v2.z());
+//                        fprintf(file4,"f %d %d %d\n",file5id+1,file5id+2,file5id+3);
+//                        file5id+=3;
+//                    }
+
+
+
+
+
+
+
+                    //*****************************************************
+
+                    for(int tt1 = 0;tt1<  face_inner_grid_part[poss_face_id].size();tt1++){
+                        for(int tt2 = tt1+1;tt2<  face_inner_grid_part[poss_face_id].size();tt2++){
+                            auto x1 = face_inner_grid_part[poss_face_id][tt1];
+                            int cnt=0;
+                            for(int kk=0;kk<3;kk++) {
+                                auto x2 = face_inner_grid_part[poss_face_id][tt2].vertex(kk);
+                                if(CGAL::squared_distance(x1,x2) <CGAL::Epeck::FT(myeps)){
+                                    cnt++;
+                                }
+                            }
+                            if(cnt==3){
+                                std::unique_lock<std::mutex>lock(mu);
+                                static int vid5=1;
+                                auto ver10 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt1].vertex(0));
+                                auto ver11 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt1].vertex(1));
+                                auto ver12 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt1].vertex(2));
+                                auto ver20 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt2].vertex(0));
+                                auto ver21 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt2].vertex(1));
+                                auto ver22 = Point_K2_to_iGameVertex(face_inner_grid_part[poss_face_id][tt2].vertex(2));
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver10.x(),ver10.y(),ver10.z());
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver11.x(),ver11.y(),ver11.z());
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver12.x(),ver12.y(),ver12.z());
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver20.x(),ver20.y(),ver20.z());
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver21.x(),ver21.y(),ver21.z());
+                                fprintf(file5,"v %lf %lf %lf\n" ,ver22.x(),ver22.y(),ver22.z());
+                                fprintf(file5,"f %d %d %d\n",vid5,vid5+1,vid5+2);
+                                fprintf(file5,"f %d %d %d\n",vid5+3,vid5+4,vid5+5);
+                                vid5+=6;
+                                cout <<"GGGG EBBEBEBEBE" << endl;
+                            }
+
+                        }
+                    }
+
+
+
 
 //                    std::unique_lock<std::mutex>lock(mu);
 //                    static int vid = 1;
@@ -1671,12 +1837,338 @@ int main() {
 
                 }
 
+                vector<vector<K2::Triangle_3> >second_div_face(possible_face_list.size());
+                for(int i=0;i<possible_face_list.size();i++){
+                    list<K2::Triangle_3 >now_tri_list;
+                    K2::Segment_3 e0(field_move_K2_triangle[possible_face_list[i]].vertex(0),
+                                     field_move_K2_triangle[possible_face_list[i]].vertex(1));
+                    K2::Segment_3 e1(field_move_K2_triangle[possible_face_list[i]].vertex(1),
+                                     field_move_K2_triangle[possible_face_list[i]].vertex(2));
+                    K2::Segment_3 e2(field_move_K2_triangle[possible_face_list[i]].vertex(2),
+                                     field_move_K2_triangle[possible_face_list[i]].vertex(0));
+                    vector<pair<K2::Segment_3,K2::Triangle_3> >cutting_segment;
+                    for(int j=0;j<possible_face_list.size();j++){
+                        if(i==j)continue;
+
+                        CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3, K2::Triangle_3)>::type
+                                res = intersection(field_move_K2_triangle[possible_face_list[i]],
+                                                   field_move_K2_triangle[possible_face_list[j]]);
+                        if (res) {
+                            if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res)) {
+                                bool same_edge = false;
+                                for(K2::Segment_3 edge : {e0,e1,e2}){
+                                    if(segment_in_line(edge,*s))
+                                        same_edge = true;
+                                }
+                                if(!same_edge){
+                                    cutting_segment.emplace_back(*s,field_move_K2_triangle[possible_face_list[j]]);
+                                    std::unique_lock<std::mutex>lock(mu);
+
+                                    static int xxx=1;
+                                    auto vv0 = Point_K2_to_iGameVertex(s->vertex(0));
+                                    auto vv1 = Point_K2_to_iGameVertex(s->vertex(1));
+
+                                    fprintf(file9,"v %lf %lf %lf\n",vv0.x(),vv0.y(),vv0.z());
+                                    fprintf(file9,"v %lf %lf %lf\n",vv1.x(),vv1.y(),vv1.z());
+                                    fprintf(file9,"l %d %d\n",xxx,xxx+1);
+//                                    {
+//                                        CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3, K2::Line_3)>::type
+//                                                res22 = intersection(field_move_K2_triangle[possible_face_list[i]],
+//                                                                     s->supporting_line());
+//                                        if(res22){
+//                                            if(const K2::Segment_3 *ss2 = boost::get<K2::Segment_3>(&*res22)){
+//                                                auto ss20 = Point_K2_to_iGameVertex(ss2->vertex(0));
+//                                                auto ss21 = Point_K2_to_iGameVertex(ss2->vertex(1));
+//                                                fprintf(file7,"v %lf %lf %lf\n",ss20.x(),ss20.y(),ss20.z());
+//                                                fprintf(file7,"v %lf %lf %lf\n",ss21.x(),ss21.y(),ss21.z());
+//                                                fprintf(file7,"l %d %d\n",xxx,xxx+1);
+//                                            }
+//                                            else
+//                                                cout <<"GGG" << endl;
+//                                        }
+//                                        else
+//                                            cout <<"GGG" << endl;
+//                                    }
+                                    xxx+=2;
+                                }
+                                //判断交线是不是边6
+
+                            }//面交再说！；；；；
+                        }
+
+                    }
 
 
 
 
+
+
+                    for(int j=0;j<face_inner_grid_part[i].size();j++){
+                        now_tri_list.push_back(face_inner_grid_part[i][j]);
+                    }
+
+                   // now_tri_list.push_back(field_move_K2_triangle[possible_face_list[i]]);
+                    MeshKernel::iGameVertex direct = (field_move_face[possible_face_list[i]][1] - field_move_face[possible_face_list[i]][0]) %
+                            (field_move_face[possible_face_list[i]][2] - field_move_face[possible_face_list[i]][0]);
+
+
+                    for(int j=0;j<cutting_segment.size();j++) {
+
+                        vector<K2::Triangle_3>new_triangles;
+
+                        for (list<K2::Triangle_3>::iterator it = now_tri_list.begin();it != now_tri_list.end(); ) {
+                            //break;
+                            vector<K2::Point_3>on_side_vertices;
+                            vector<K2::Point_3>positive_side_vertices;
+                            vector<K2::Point_3>negative_side_vertices;
+
+
+                            for(int k=0;k<3;k++){
+                                if(cutting_segment[j].second.supporting_plane().has_on(it->vertex(k))){
+                                    on_side_vertices.push_back(it->vertex(k));
+                                }
+                                else if(cutting_segment[j].second.supporting_plane().has_on_positive_side(it->vertex(k))){
+                                    positive_side_vertices.push_back(it->vertex(k));
+                                }
+                                else {
+                                    negative_side_vertices.push_back(it->vertex(k));
+                                }
+                            }
+
+                            if(!positive_side_vertices.empty() && !negative_side_vertices.empty()){
+                                K2::Line_3 line(cutting_segment[j].first.vertex(0),cutting_segment[j].first.vertex(1));
+
+                                CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3, K2::Line_3)>::type
+                                        res = intersection(*it,line);
+                                if (res) {
+                                    if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res)) {
+
+
+                                        K2::Point_3 intersect_v0 = s->vertex(0);
+                                        K2::Point_3 intersect_v1 = s->vertex(1);
+                                        for(const vector<K2::Point_3>& v_side: {positive_side_vertices,negative_side_vertices}){
+                                       // for(const vector<K2::Point_3>& v_side: {positive_side_vertices}){
+                                            if(v_side.size() == 1){
+                                                new_triangles.emplace_back(intersect_v0,intersect_v1,v_side[0]);
+                                            }
+                                            else if(v_side.size() == 2){
+                                                vector<K2::Point_3>vec{intersect_v0,intersect_v1,v_side[0],v_side[1]};
+                                                sort_by_polar_order(vec,direct);
+                                                new_triangles.emplace_back(vec[0],vec[1],vec[2]);
+                                                new_triangles.emplace_back(vec[0],vec[2],vec[3]);
+                                            }
+                                        }
+                                        it = now_tri_list.erase(it);
+
+                                        std::unique_lock<std::mutex>lock(mu);
+
+
+
+                                        static int xxx=1;
+                                        auto vv0 = Point_K2_to_iGameVertex(s->vertex(0));
+                                        auto vv1 = Point_K2_to_iGameVertex(s->vertex(1));
+                                        fprintf(file8,"v %lf %lf %lf\n",vv0.x(),vv0.y(),vv0.z());
+                                        fprintf(file8,"v %lf %lf %lf\n",vv1.x(),vv1.y(),vv1.z());
+                                        fprintf(file8,"l %d %d\n",xxx,xxx+1);
+                                        xxx+=2;
+
+                                        continue;
+                                    }
+                                }
+                            }
+                            it++;
+                        }
+                        for(auto tmp:new_triangles)
+                            now_tri_list.push_back(tmp);
+                    }
+
+                    static int vid = 1;
+                    for(auto tri: now_tri_list) {
+                        // todo : open this code this code is check weather is need generate
+/*****************************/
+
+                        bool flag = false;
+                        for(int j=0;j<possible_face_list.size();j++){
+                            for (int each_tet_id = 0; each_tet_id < 6 && !flag; each_tet_id++) {
+
+                                K2::Tetrahedron_3 tet = faces_approximate_field[possible_face_list[j]].tet_list[each_tet_id];
+                                CGAL::Epeck::FT dist = CGAL::squared_distance(CGAL::centroid(tri),field_move_K2_triangle[possible_face_list[j]]);
+
+                                if(tet.has_on_bounded_side(CGAL::centroid(tri)) && dist > CGAL::Epeck::FT(myeps)){
+                                    flag = true;
+                                }
+//                                else if(tet.has_on_bounded_side(tri.vertex(0))){
+//                                    flag = true;
+//                                }
+//                                else if(tet.has_on_bounded_side(tri.vertex(1))){
+//                                    flag = true;
+//                                }
+//                                else if(tet.has_on_bounded_side(tri.vertex(2))){
+//                                    flag = true;
+//                                }
+//                                CGAL::cpp11::result_of<K2::Intersect_3(K2::Tetrahedron_3 , K2::Triangle_3)>::type
+//                                        res_tet_tri = intersection(tet,
+//                                                           tri);
+//                                vector<K2::Point_3> intersect_res;
+//                                if (res_tet_tri) {
+//                                    if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res_tet_tri)) {
+//                                        intersect_res.push_back(s->vertex(0));
+//                                        intersect_res.push_back(s->vertex(1));
+//
+//                                    }
+//                                    if (const K2::Triangle_3 *t = boost::get<K2::Triangle_3>(&*res_tet_tri)) {
+//                                        intersect_res.push_back(t->vertex(0));
+//                                        intersect_res.push_back(t->vertex(1));
+//                                        intersect_res.push_back(t->vertex(2));
+//                                    }
+//                                    if (const std::vector <K2::Point_3> *v = boost::get<std::vector <K2::Point_3> >(&*res_tet_tri)) {
+//                                        for(const auto& v_i: *v)
+//                                            intersect_res.push_back(v_i);
+//                                    }
+//                                }
+//                                K2::Triangle_3 moved_face = field_move_K2_triangle[possible_face_list[j]];
+//
+//                                for(auto item : intersect_res) {
+//                                    if (CGAL::squared_distance(item, moved_face) > CGAL::Epeck::FT(myeps)) {
+//                                        flag = true;
+//                                    }
+//                                }
+
+                            }
+                        }
+                        if(!flag){
+                            int side_type = get_side_type(Point_K2_to_iGameVertex(CGAL::centroid(tri)));
+                            if(side_type !=1)
+                                flag = true;
+                        }
+                        if(flag) {
+
+                            static int dvid = 1;
+                            auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
+                            auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
+                            auto vvv2 = Point_K2_to_iGameVertex(tri.vertex(2));
+                            auto ddd = (vvv1 - vvv0) % (vvv2- vvv0);
+                            if(ddd*direct <0)
+                                swap(vvv1,vvv2);
+                            std::unique_lock<std::mutex>lock(mu);
+                            fprintf(file4_5,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
+                            fprintf(file4_5,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
+                            fprintf(file4_5,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
+                            fprintf(file4_5,"f %d %d %d\n",dvid,dvid+1,dvid+2);
+                            dvid+=3;
+                            continue;
+                        }
+/*****************************/
+                        auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
+                        auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
+                        auto vvv2 = Point_K2_to_iGameVertex(tri.vertex(2));
+                        auto ddd = (vvv1 - vvv0) % (vvv2- vvv0);
+                        if(ddd*direct <0)
+                            swap(vvv1,vvv2);
+                        std::unique_lock<std::mutex>lock(mu);
+                        fprintf(file10,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
+                        fprintf(file10,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
+                        fprintf(file10,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
+                        fprintf(file10,"f %d %d %d\n",vid,vid+1,vid+2);
+                        vid+=3;
+                    }
+
+
+                    for(auto it1 = now_tri_list.begin();it1!=now_tri_list.end();it1++){
+
+                        for(auto it2 = it1;it2!=now_tri_list.end();it2++){
+                            bool flag = false;
+                            if(it1 != it2){
+                                int cnt = 0;
+                                cnt += CGAL::squared_distance(it1->vertex(0),*it2) < CGAL::Epeck::FT(myeps);
+                                cnt += CGAL::squared_distance(it1->vertex(1),*it2) < CGAL::Epeck::FT(myeps);
+                                cnt += CGAL::squared_distance(it1->vertex(2),*it2) < CGAL::Epeck::FT(myeps);
+                                if(cnt ==3)
+                                    flag = true;
+                            }
+                            if(flag){
+
+                                static int vvvvid = 1;
+                                std::unique_lock<std::mutex>lock(mu);
+                                auto vvvvv0 = Point_K2_to_iGameVertex(it1->vertex(0));
+                                auto vvvvv1 = Point_K2_to_iGameVertex(it1->vertex(1));
+                                auto vvvvv2 = Point_K2_to_iGameVertex(it1->vertex(2));
+                                auto vvvvv3 = Point_K2_to_iGameVertex(it2->vertex(0));
+                                auto vvvvv4 = Point_K2_to_iGameVertex(it2->vertex(1));
+                                auto vvvvv5 = Point_K2_to_iGameVertex(it2->vertex(2));
+
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv0.x(),vvvvv0.y(),vvvvv0.z());
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv1.x(),vvvvv1.y(),vvvvv1.z());
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv2.x(),vvvvv2.y(),vvvvv2.z());
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv3.x(),vvvvv3.y(),vvvvv3.z());
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv4.x(),vvvvv4.y(),vvvvv4.z());
+                                fprintf(file2,"v %lf %lf %lf\n",vvvvv5.x(),vvvvv5.y(),vvvvv5.z());
+                                fprintf(file2,"f %d %d %d\n",vvvvid,vvvvid+1,vvvvid+2);
+                                fprintf(file2,"f %d %d %d\n",vvvvid+3,vvvvid+4,vvvvid+5);
+                                vvvvid+=6;
+                            }
+                        }
+                    }
+
+
+
+                    for(auto it1 = now_tri_list.begin();it1!=now_tri_list.end();it1++){
+                        K2::Segment_3 e0(it1->vertex(0),
+                                         it1->vertex(1));
+                        K2::Segment_3 e1(it1->vertex(1),
+                                         it1->vertex(2));
+                        K2::Segment_3 e2(it1->vertex(2),
+                                         it1->vertex(0));
+                        for(auto it2 = it1;it2!=now_tri_list.end();it2++){
+                            bool flag = false;
+                            MeshKernel::iGameVertex tv1,tv2;
+                            if(it1 != it2){
+                                CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3 , K2::Triangle_3)>::type
+                                        res_tt = intersection(*it1,*it2);
+                                vector<K2::Point_3> intersect_res;
+
+                                if (res_tt) {
+
+                                    if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res_tt)) {
+                                        bool same_edge = false;
+                                        for(auto item  : {e0,e1,e2})
+                                            if(segment_in_line(*s,item))
+                                                same_edge = true;
+                                        tv1 = Point_K2_to_iGameVertex(s->vertex(0));
+                                        tv2 = Point_K2_to_iGameVertex(s->vertex(1));
+                                        if(!same_edge)
+                                            flag = true;
+                                    }
+
+                                }
+                            }
+                            if(flag){
+                                cout << "GGF" << endl;
+                                static int vvvvid = 1;
+                                std::unique_lock<std::mutex>lock(mu);
+                                auto vvvvv0 = Point_K2_to_iGameVertex(it1->vertex(0));
+                                auto vvvvv1 = Point_K2_to_iGameVertex(it1->vertex(1));
+                                auto vvvvv2 = Point_K2_to_iGameVertex(it1->vertex(2));
+                                auto vvvvv3 = Point_K2_to_iGameVertex(it2->vertex(0));
+                                auto vvvvv4 = Point_K2_to_iGameVertex(it2->vertex(1));
+                                auto vvvvv5 = Point_K2_to_iGameVertex(it2->vertex(2));
+
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv0.x(),vvvvv0.y(),vvvvv0.z());
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv1.x(),vvvvv1.y(),vvvvv1.z());
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv2.x(),vvvvv2.y(),vvvvv2.z());
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv3.x(),vvvvv3.y(),vvvvv3.z());
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv4.x(),vvvvv4.y(),vvvvv4.z());
+                                fprintf(file3,"v %lf %lf %lf\n",vvvvv5.x(),vvvvv5.y(),vvvvv5.z());
+                                fprintf(file3,"v %lf %lf %lf\n",tv1.x(),tv1.y(),tv1.z());
+                                fprintf(file3,"v %lf %lf %lf\n",tv2.x(),tv2.y(),tv2.z());
+                                fprintf(file3,"f %d %d %d\n",vvvvid,vvvvid+1,vvvvid+2);
+                                fprintf(file3,"f %d %d %d\n",vvvvid+3,vvvvid+4,vvvvid+5);
+                                vvvvid+=8;
+                            }
+                        }
+                    }
+                }
                 //for(int other_face_id = 0 ; other_face_id < possible_face_list.size())
-
 
             }
 
@@ -3232,7 +3724,6 @@ int main() {
     }
     for(int i=0;i<thread_num;i++)
         thread_pool[i]->join();
-
     for(int i=1 ;i<=build_mesh_vertex.size();i++){
         fprintf(file,"v %lf %lf %lf\n",qef_result[i].x(),qef_result[i].y(),qef_result[i].z());
     }
