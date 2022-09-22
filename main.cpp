@@ -1447,7 +1447,7 @@ int main() {
 //    auto c3 = c1*c2;
 //    cout << CGAL::to_double(c3) << endl;
 //    return 0;
-    file_id = 3090;
+    file_id = 3092;
     FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
 
 //    vector<FILE*> part_debug_file_list(10);
@@ -1770,7 +1770,7 @@ int main() {
  */
 
     //1.463933 19.793690 -4.492545
-    MeshKernel::iGameVertex debug_v(52.401478,84.778061,-26.642372);
+    MeshKernel::iGameVertex debug_v(-5.152621,-4.148155,53.709942);
     grid debug_g =  vertex_to_grid(debug_v);
 
     cout <<"v to g :" <<debug_g.x <<" "<< debug_g.y <<" "<<debug_g.z << endl;
@@ -1899,11 +1899,11 @@ int main() {
                     return true;
                 }
                 return false;
-    };
+    };// 20 10 10 5
 
     long long  sum_grid = 0;
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
-        if(!(each_grid->first.x == 26 && each_grid->first.y == 31 && each_grid->first.z == 7  ))continue;
+        if(!(each_grid->first.x == 14 && each_grid->first.y == 11 && each_grid->first.z == 24  ))continue;
         auto small  = getGridVertex(each_grid->first,0);
         auto big  = getGridVertex(each_grid->first,7);
         static int f3_id = 1;
@@ -1983,7 +1983,7 @@ int main() {
                 }
 
                // if(!(each_grid->first.x == 11 && each_grid->first.y == 14 && each_grid->first.z == 18  ))continue;
-              //  if(!(each_grid->first.x == 26 && each_grid->first.y == 31 && each_grid->first.z == 7  ))continue; // 15 22 21 // 26 31 7
+                if(!(each_grid->first.x == 14 && each_grid->first.y == 11 && each_grid->first.z == 24  ))continue; // 15 22 21 // 26 31 7
 
 
 
@@ -2101,8 +2101,9 @@ int main() {
                         }
                     }
                 }
-
+                set<int> debug_face_id;
                 for (MeshKernel::iGameFaceHandle i: face_list){
+                    //if( i == 1419)continue;
                     for(vector<MeshKernel::iGameVertex> j : faces_approximate_field[i].side_face){
                         K2::Triangle_3 tri1(iGameVertex_to_Point_K2(j[0]),
                                         iGameVertex_to_Point_K2(j[1]),
@@ -2117,15 +2118,25 @@ int main() {
                                 if(face_through_grid(small, big, j)) {
                                     maybe_used_side_face.push_back(j);
                                     maybe_used_face_field.insert(i);
+                                    if( i == 1419) { //TODO THIS CODE IS DEBUG CODE
+                                        debug_face_id.insert( maybe_used_face.size());
+                                        cout << "debug_face_id??" << maybe_used_face.size() << endl;
+                                    }
+                                    maybe_used_face.push_back(j);
                                 }
                                 break;
                             }
                         }
                     }
                 }
-                for(auto i : maybe_used_side_face){
-                    maybe_used_face.push_back(i);
-                }
+                // 9.22 删除 疑似和 上面的代码可替代
+//                for(auto j : maybe_used_side_face){
+//                    if( i == 1419) {
+//                        debug_face_id = maybe_used_face.size();
+//                        cout << "debug_face_id??" << debug_face_id << endl;
+//                    }
+//                    maybe_used_face.push_back(j);
+//                }
 
 
 
@@ -2151,12 +2162,20 @@ int main() {
                 }
 
 
-                for (int i: maybe_used_face_field){
-                    for(auto j : faces_approximate_field[i].side_face) {
+                for (int i: maybe_used_face_field) {
+                    for(int j =0; j<faces_approximate_field[i].side_face.size(); j++) {
                         static int f5id=0;
-                        auto v0 = j[0];
-                        auto v1 = j[1];
-                        auto v2 = j[2];
+                        auto v0 = faces_approximate_field[i].side_face[j][0];
+                        auto v1 = faces_approximate_field[i].side_face[j][1];
+                        auto v2 = faces_approximate_field[i].side_face[j][2];
+                        MeshKernel::iGameVertex debug_v(-0.853005,-3.295282,48.552765);
+
+                        K::Triangle_3 tri(iGameVertex_to_Point(v0),iGameVertex_to_Point(v1),iGameVertex_to_Point(v2));
+
+                        if(CGAL::squared_distance(iGameVertex_to_Point(debug_v),tri) < myeps){
+                            cout <<"*****" << i<<" "<<j<< endl;
+                        }
+
                         fprintf(file5, "v %lf %lf %lf\n", v0.x(), v0.y(),v0.z());
                         fprintf(file5, "v %lf %lf %lf\n", v1.x(), v1.y(),v1.z());
                         fprintf(file5, "v %lf %lf %lf\n", v2.x(), v2.y(),v2.z());
@@ -2174,7 +2193,6 @@ int main() {
                         fprintf(file4, "f %d %d %d\n",f4id+1,f4id+2,f4id+3);
                         f4id+=3;
                     }
-
                     for(auto j : faces_approximate_field[i].inner_face) {
                         static int f3id=0;
                         auto v0 = j[0];
@@ -2273,6 +2291,7 @@ int main() {
                 static int vid = 1;
                 int xx=0;
                 vector<vector<K2::Triangle_3> > face_inner_grid_part(maybe_used_face.size());
+                // 下面这段是和边框切割的代码
                 for(int maybe_used_face_id=0; maybe_used_face_id < maybe_used_face.size(); maybe_used_face_id++) {
 
                     vector<K2::Point_3 > res = get_grid_intersect_triangle(maybe_used_face[maybe_used_face_id][0],maybe_used_face[maybe_used_face_id][1],maybe_used_face[maybe_used_face_id][2],
@@ -2500,6 +2519,9 @@ int main() {
 
                 //todo ： 这里加个continue 看看效率
                 for(int i=0;i<maybe_used_face.size();i++) { // 处理单片面的切割
+                    if(debug_face_id.count(i))continue; // 这里用来debug 漂浮面形成的原因 9月23找这里的bug!!!!!!!!!!!!!!!!!明天一早来找
+
+
                     list<K2::Triangle_3 >now_tri_list;
                     K2::Segment_3 e0(iGameVertex_to_Point_K2(maybe_used_face[i][0]),
                                      iGameVertex_to_Point_K2(maybe_used_face[i][1]));
@@ -2563,10 +2585,6 @@ int main() {
                         }
 
                     }
-
-
-
-
 
 
                     for(int j=0;j<face_inner_grid_part[i].size();j++){
