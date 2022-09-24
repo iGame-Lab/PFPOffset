@@ -873,7 +873,6 @@ bool check_in_approximate_field_list_debug(const vector<K2::Tetrahedron_3>& tet_
     cout <<"K2::POINT3V  v " <<vv.x() <<" "<< vv.y() <<" "<< vv.z() << endl;
     int cnt=0;
     for (auto j: tet_list) {
-        cnt++;
         FILE *f = fopen(("../data/output" + to_string(file_id) + "_tet" + to_string(cnt)+".obj").c_str(), "w");
         int x = 0;
         for (vector<int> id: vector<vector<int> >{{0, 2, 1},{1, 3, 0},{1, 2, 3},{0, 3, 2}}) {
@@ -893,6 +892,7 @@ bool check_in_approximate_field_list_debug(const vector<K2::Tetrahedron_3>& tet_
             fprintf(f, "f %d %d %d\n",x+1,x+2,x+3);
             x+=3;
         }
+        cnt++;
     }
 
     cout <<"near face :!!!" <<near_face.size() << endl;
@@ -944,9 +944,11 @@ bool check_in_approximate_field_list_debug(const vector<K2::Tetrahedron_3>& tet_
 }
 
 
-bool check_in_approximate_tet_list(const vector<K2::Tetrahedron_3>& tet_list, K2::Point_3 v){
+bool check_in_approximate_tet_list(const vector<K2::Tetrahedron_3>& tet_list, K2::Point_3 v,vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face) {
     FILE *file1 = fopen(("../data/in1tet" + to_string(file_id) + ".obj").c_str(), "w");
     FILE *file2 = fopen(("../data/in2tet" + to_string(file_id) + ".obj").c_str(), "w");
+    FILE *file3 = fopen(("../data/in3tet" + to_string(file_id) + ".obj").c_str(), "w");
+    FILE *file4 = fopen(("../data/in4tet" + to_string(file_id) + ".obj").c_str(), "w");
     int fis1id=0;
     for(auto i : tet_list){
 
@@ -976,9 +978,9 @@ bool check_in_approximate_tet_list(const vector<K2::Tetrahedron_3>& tet_list, K2
             }
         }
     }
-    for(const K2::Tetrahedron_3& i : tet_list){
-        for(const K2::Point_3& j : check_point_list){
-            if(i.has_on_bounded_side(j)){
+    for(const K2::Tetrahedron_3& i : tet_list) {
+        for(const K2::Point_3& j : check_point_list) {
+            if(i.has_on_bounded_side(j)) {
                 return true;
             }
         }
@@ -987,6 +989,33 @@ bool check_in_approximate_tet_list(const vector<K2::Tetrahedron_3>& tet_list, K2
     fprintf(file2, "v %lf %lf %lf\n", v0.x(), v0.y(),v0.z());
     cout <<"tet_list.size() : " <<tet_list.size() << endl;
     cout << "method2 res :"<< check_in_approximate_field_list_debug(tet_list,v) <<" "<<endl;
+    int x = 0;
+    for(auto i : faces_approximate_field[debug_tet_list_belong_face[34]].tet_list){
+        for (vector<int> id: vector<vector<int> >{{0, 2, 1},{1, 3, 0},{1, 2, 3},{0, 3, 2}}) {
+            MeshKernel::iGameVertex v0 = Point_K2_to_iGameVertex(i.vertex(id[0]));
+            MeshKernel::iGameVertex v1 = Point_K2_to_iGameVertex(i.vertex(id[1]));
+            MeshKernel::iGameVertex v2 = Point_K2_to_iGameVertex(i.vertex(id[2]));
+            fprintf(file3, "v %lf %lf %lf\n", v0.x(), v0.y(),v0.z());
+            fprintf(file3, "v %lf %lf %lf\n", v1.x(), v1.y(),v1.z());
+            fprintf(file3, "v %lf %lf %lf\n", v2.x(), v2.y(),v2.z());
+            fprintf(file3, "f %d %d %d\n",x+1,x+2,x+3);
+            x+=3;
+        }
+    }
+    x = 0;
+    for(auto i : faces_approximate_field[debug_tet_list_belong_face[5]].tet_list){
+        for (vector<int> id: vector<vector<int> >{{0, 2, 1},{1, 3, 0},{1, 2, 3},{0, 3, 2}}) {
+            MeshKernel::iGameVertex v0 = Point_K2_to_iGameVertex(i.vertex(id[0]));
+            MeshKernel::iGameVertex v1 = Point_K2_to_iGameVertex(i.vertex(id[1]));
+            MeshKernel::iGameVertex v2 = Point_K2_to_iGameVertex(i.vertex(id[2]));
+            fprintf(file4, "v %lf %lf %lf\n", v0.x(), v0.y(),v0.z());
+            fprintf(file4, "v %lf %lf %lf\n", v1.x(), v1.y(),v1.z());
+            fprintf(file4, "v %lf %lf %lf\n", v2.x(), v2.y(),v2.z());
+            fprintf(file4, "f %d %d %d\n",x+1,x+2,x+3);
+            x+=3;
+        }
+    }
+
     exit(111);
 
     return false;
@@ -2258,10 +2287,12 @@ int main() {
                 set<int> debug_face_id;
 
                 std::vector<K2::Tetrahedron_3 >field_tet_list;
+                std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
                 for (MeshKernel::iGameFaceHandle i: face_list){
                     for(auto j : faces_approximate_field[i].tet_list){
                         if(tet_through_grid(small,big,j)){
                             field_tet_list.push_back(j);
+                            debug_tet_list_belong_face.push_back(i);
                         }
                     }
                 }
@@ -2882,9 +2913,9 @@ int main() {
 
                         //todo :   注意这里没有和外部面判断相交进行裁切 说不定有问题!!!!!!!!!；
 /*****************************/
-
+                        cout <<"start check "<< endl;
                       //  bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
-                        bool flag = check_in_approximate_tet_list(field_tet_list ,CGAL::centroid(tri));
+                        bool flag = check_in_approximate_tet_list(field_tet_list ,CGAL::centroid(tri),debug_tet_list_belong_face);
 //                        if(!flag){
 //
 //
