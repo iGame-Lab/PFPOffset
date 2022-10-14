@@ -654,6 +654,9 @@ struct ApproximateField{
 //            }
 //        }
         vector<vector<int> >side_face_generate;
+        side_face_generate.push_back({0,1,2});
+        side_face_generate.push_back({0+3,2+3,1+3});
+
         for(int i=0;i<3;i++)
             bound_face_vertex.push_back(origin_vertices[i]);
         for(int i=0;i<3;i++)
@@ -749,8 +752,7 @@ struct ApproximateField{
                 }
             }
         }
-        side_face_generate.push_back({0,1,2});
-        side_face_generate.push_back({0+3,2+3,1+3});
+
         //int xx=1;
 
         for(int i=0;i<side_face_generate.size();i++) {
@@ -806,6 +808,37 @@ struct ApproximateField{
             //cout << xx <<" "<< flag1 <<" "<< flag2 << endl; //10 坏了
             //xx+=3;
         }
+        set<int >se;
+        queue<int>q;
+        q.push(0);
+        while(!q.empty()){
+            int id = q.front();
+            q.pop();
+            if(se.count(id))continue;
+            se.insert(id);
+            map<int,int> mp_id_vertex;
+            for(int i=0;i<3;i++)
+                mp_id_vertex[bound_face_id[id][i]] = i;
+
+            for(int j=0;j<bound_face_id.size();j++){ // 找其他所有
+                if(!se.count(j) && mp_id_vertex.count(bound_face_id[j][0])
+                                   + mp_id_vertex.count(bound_face_id[j][1]) + mp_id_vertex.count(bound_face_id[j][2]) >= 2  ){
+                    for(int k=0;k<3;k++){
+                        if(mp_id_vertex.count(bound_face_id[j][k]) && mp_id_vertex.count(bound_face_id[j][(k + 1) % 3])) {
+                           int in_id_k = mp_id_vertex[bound_face_id[j][k]];
+                           int in_id_kp1 = mp_id_vertex[bound_face_id[j][(k+1)%3]];
+                           if( (in_id_kp1 + 1) % 3 != in_id_k){
+                               swap(bound_face_id[j][k],bound_face_id[j][(k+1)%3]);
+                               break;
+                           }
+                        }
+                    }
+                    q.push(j);
+                }
+            }
+        }
+
+
 
 
 
@@ -942,15 +975,15 @@ struct ApproximateField{
 //            }
 //        }
 
-        for(int k=0;k<bound_face_vertex.size();k++){
-            printf("v %lf %lf %lf\n",bound_face_vertex[k].x(),bound_face_vertex[k].y(),bound_face_vertex[k].z());
-        }
-        for(int k=0;k<bound_face_id.size();k++){
-            printf("f %d %d %d\n",bound_face_id[k][0]+1,
-                    bound_face_id[k][1]+1,
-                    bound_face_id[k][2]+1);
-
-        }
+//        for(int k=0;k<bound_face_vertex.size();k++){
+//            printf("v %lf %lf %lf\n",bound_face_vertex[k].x(),bound_face_vertex[k].y(),bound_face_vertex[k].z());
+//        }
+//        for(int k=0;k<bound_face_id.size();k++){
+//            printf("f %d %d %d\n",bound_face_id[k][0]+1,
+//                    bound_face_id[k][1]+1,
+//                    bound_face_id[k][2]+1);
+//
+//        }
 
         PMP::polygon_soup_to_polygon_mesh(vertex_list, face_list, poly, CGAL::parameters::all_default());
         CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(poly);
@@ -1265,7 +1298,8 @@ bool check_in_approximate_field_list(const set<int> &nearby_field_id_list ,K2::T
 
                     printf("ddd\n");
                     static int xx = 0;
-                    FILE *filexx = fopen(("../data/output/ddd/" + to_string(file_id) + "_dianyun"+ to_string(xx) + ".obj").c_str(), "w");
+                    FILE *filexx = fopen(("../data/ddd/output" + to_string(file_id) + "_dianyun"+ to_string(xx) + ".obj").c_str(), "w");
+                    xx++;
                     int id = 1;
                     fprintf(filexx,"v %lf %lf %lf\n",CGAL::to_double(tri.vertex(0).x()),CGAL::to_double(tri.vertex(0).y()),CGAL::to_double(tri.vertex(0).z()));
                     fprintf(filexx,"v %lf %lf %lf\n",CGAL::to_double(tri.vertex(1).x()),CGAL::to_double(tri.vertex(1).y()),CGAL::to_double(tri.vertex(1).z()));
@@ -1903,13 +1937,13 @@ void sort_by_polar_order(vector<K2::Point_3>& v,MeshKernel::iGameVertex orthogon
 int main() {
    // d1013bug();
 
-    return 0;
+
 //    CGAL::Epeck::FT c1 = 2;
 //    CGAL::Epeck::FT c2 = 5;
 //    auto c3 = c1*c2;
 //    cout << CGAL::to_double(c3) << endl;
 //    return 0;
-    file_id = 3093;//54.489426 73.433586 -17.990524
+    file_id = 3095;//54.489426 73.433586 -17.990524
     FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
 
 //    vector<FILE*> part_debug_file_list(10);
@@ -1966,10 +2000,10 @@ int main() {
 //    return 0;
 
 
-     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 4.5; double default_move_dist =2;
+   //  mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 4.5; double default_move_dist =2;
 
 
-   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 2.5; double default_move_dist = 0.8;
+    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 2.5; double default_move_dist = 0.8;
 
 //    for(int i=0;i<mesh->FaceSize();i++){
 //        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = 0.05;
@@ -2382,7 +2416,7 @@ int main() {
 
     long long  sum_grid = 0;
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
-        if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
+     //   if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
        // if(!(each_grid->first.x == 14 && each_grid->first.y == 11 && each_grid->first.z == 24  ))continue;
         auto small  = getGridVertex(each_grid->first,0);
         auto big  = getGridVertex(each_grid->first,7);
@@ -2463,7 +2497,7 @@ int main() {
                 }
 
                // if(!(each_grid->first.x == 17 && each_grid->first.y == 27 && each_grid->first.z == 10  ))continue;
-                if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
+               // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
 
 
 
@@ -3235,7 +3269,7 @@ int main() {
 /*****************************/
                        // cout <<"start check "<< endl;
 
-                      //  bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
+                       // bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
                         bool flag = check_in_approximate_field_list(field_through_set ,CGAL::centroid(tri));
 
                             // 这个地方是不是可以去掉底相交呢？？？？？
