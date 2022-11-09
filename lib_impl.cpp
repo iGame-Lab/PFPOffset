@@ -16,9 +16,6 @@
 #include "MeshKernel/Mesh.h"
 
 
-#include "GLKLib/GLKMatrixLib.h"
-
-
 using namespace std;
 
 #include "lib_impl.h"
@@ -199,113 +196,6 @@ bool CGALPlaneSegIntersect(MeshKernel::iGameFace f, MeshKernel::iGameVertex v1,M
         return true;
     else
         return false;
-}
-
-void QEF_calculate(std::vector<double>minP,std::vector<double>maxP, int pntNum, vector<double> sx, vector<double> sy, vector<double> sz,
-                   vector<double> nx, vector<double> ny, vector<double> nz, vector<double> &pp) {
-    double proj, scale;
-    double criterion = 0.05;
-    int i, j, k;
-    double **A, **UU, **VV, **UUT, **VVT;
-    double *B, *X;
-
-
-    //---------------------------------------------------------------------------
-    //	Preparation
-
-    //---------------------------------------------------------------------------
-    pp[0] = pp[1] = pp[2] = 0.0;
-    for (int index = 0; index < pntNum; index++) {
-        pp[0] += sx[index];
-        pp[1] += sy[index];
-        pp[2] += sz[index];
-    }
-    pp[0] = pp[0] / (double) pntNum;
-    pp[1] = pp[1] / (double) pntNum;
-    pp[2] = pp[2] / (double) pntNum;
-    //---------------------------------------------------------------------------
-    GLKMatrixLib::CreateMatrix(A, 3, 3);
-    B = new double[3];
-    X = new double[3];
-    GLKMatrixLib::CreateMatrix(UU, 3, 3);
-    GLKMatrixLib::CreateMatrix(VV, 3, 3);
-    GLKMatrixLib::CreateMatrix(UUT, 3, 3);
-    GLKMatrixLib::CreateMatrix(VVT, 3, 3);
-    //---------------------------------------------------------------------------
-    B[0] = B[1] = B[2] = X[0] = X[1] = X[2] = 0.0;
-    for (k = 0; k < pntNum; k++) {
-        proj = (sx[k] - pp[0]) * nx[k] + (sy[k] - pp[1]) * ny[k] + (sz[k] - pp[2]) * nz[k];
-        B[0] += proj * nx[k];
-        B[1] += proj * ny[k];
-        B[2] += proj * nz[k];
-
-        A[0][0] += nx[k] * nx[k];
-        A[0][1] += nx[k] * ny[k];
-        A[0][2] += nx[k] * nz[k];
-        A[1][0] += ny[k] * nx[k];
-        A[1][1] += ny[k] * ny[k];
-        A[1][2] += ny[k] * nz[k];
-        A[2][0] += nz[k] * nx[k];
-        A[2][1] += nz[k] * ny[k];
-        A[2][2] += nz[k] * nz[k];
-    }
-
-    //---------------------------------------------------------------------------
-    //	Singular Value Decomposition
-    GLKMatrixLib::SingularValueDecomposition(A, 3, 3, UU, VVT);
-    GLKMatrixLib::Transpose(UU, 3, 3, UUT);
-    GLKMatrixLib::Transpose(VVT, 3, 3, VV);
-    double maxFactor = (fabs(A[0][0]) > fabs(A[1][1])) ? (A[0][0]) : (A[1][1]);
-    maxFactor = (fabs(maxFactor) > fabs(A[2][2])) ? (maxFactor) : (A[2][2]);
-    if (fabs(maxFactor) < 1.0e-6) {
-        for (i = 0; i < 3; i++) {
-            for (j = 0; j < 3; j++) {
-                A[i][j] = 0.0;
-            }
-        }
-    } else {
-        for (i = 0; i < 3; i++) {
-            for (j = 0; j < 3; j++) {
-                if (i != j) {
-                    A[i][j] = 0.0;
-                } else {
-                    if (fabs(A[i][j] / maxFactor) < criterion)
-                        A[i][j] = 0.0;
-                    else
-                        A[i][j] = 1.0 / A[i][j];
-                }
-            }
-        }
-    }
-    GLKMatrixLib::Mul(UUT, B, 3, 3, X);
-    GLKMatrixLib::Mul(A, X, 3, 3, B);
-    GLKMatrixLib::Mul(VV, B, 3, 3, X);
-    //-----------------------------------------------------------------
-    //	truncate the update vector and update node position
-    scale = 1.0;
-    if (fabs(X[0]) > 1.0e-5 && (pp[0] + X[0] * scale) > maxP[0]) scale = (maxP[0] - pp[0]) / X[0];
-    if (fabs(X[1]) > 1.0e-5 && (pp[1] + X[1] * scale) > maxP[1]) scale = (maxP[1] - pp[1]) / X[1];
-    if (fabs(X[2]) > 1.0e-5 && (pp[2] + X[2] * scale) > maxP[2]) scale = (maxP[2] - pp[2]) / X[2];
-    if (fabs(X[0]) > 1.0e-5 && (pp[0] + X[0] * scale) < minP[0]) scale = (minP[0] - pp[0]) / X[0];
-    if (fabs(X[1]) > 1.0e-5 && (pp[1] + X[1] * scale) < minP[1]) scale = (minP[1] - pp[1]) / X[1];
-    if (fabs(X[2]) > 1.0e-5 && (pp[2] + X[2] * scale) < minP[2]) scale = (minP[2] - pp[2]) / X[2];
-    pp[0] = pp[0] + X[0] * scale;
-    pp[1] = pp[1] + X[1] * scale;
-    pp[2] = pp[2] + X[2] * scale;
-
-    //---------------------------------------------------------------------------
-    //	Free the memory
-    GLKMatrixLib::DeleteMatrix(A, 3, 3);
-    delete[]B;
-    delete[]X;
-    GLKMatrixLib::DeleteMatrix(UU, 3, 3);
-    GLKMatrixLib::DeleteMatrix(VV, 3, 3);
-    GLKMatrixLib::DeleteMatrix(UUT, 3, 3);
-    GLKMatrixLib::DeleteMatrix(VVT, 3, 3);
-    double blendingFactor = 0.25;
-    /*pp[0] = (1.0 - blendingFactor)*pp[0] + blendingFactor*g.get_center().x();
-    pp[1] = (1.0 - blendingFactor)*pp[1] + blendingFactor*g.get_center().y();
-    pp[2] = (1.0 - blendingFactor)*pp[2] + blendingFactor*g.get_center().z();*/
 }
 
 

@@ -21,7 +21,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 file (GLOB CppFile
         MeshKernel/*
-        GLKLib/*
         Eigen/*
         )
 add_executable(Thicken2 main.cpp lib_impl.cpp DSU.cpp ${CppFile})

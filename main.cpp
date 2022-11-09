@@ -1791,11 +1791,11 @@ int main() {
    // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 4.5; double default_move_dist =1;
 
   //3.59
-   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/bunny.obj")); grid_len = 0.1; double default_move_dist = 0.05;
-    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
-//        for(int i=0;i<mesh->FaceSize();i++){
-//        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
-//    }
+    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/bunny.obj")); grid_len = 0.1; double default_move_dist = 0.05;
+    //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
+        for(int i=0;i<mesh->FaceSize();i++){
+        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
+    }
   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2")); grid_len = 0.6; double default_move_dist = 0.01;
 //    for(int i=0;i<mesh->FaceSize();i++){
 //        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
