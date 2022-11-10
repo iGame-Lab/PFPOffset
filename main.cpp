@@ -1700,28 +1700,7 @@ void sort_by_polar_order(vector<K2::Point_3>& v,MeshKernel::iGameVertex orthogon
 
 
 
-
-
-void de1014bug(){
-    CGAL::Polygon_2<K2>p;
-    p.push_back(K2::Point_2(0,0));
-    p.push_back(K2::Point_2(1,0));
-    p.push_back(K2::Point_2(2,1));
-    p.push_back(K2::Point_2(1,2));
-    p.push_back(K2::Point_2(0,2));
-    cout << CGAL::ON_ORIENTED_BOUNDARY << endl;
-    cout << CGAL::POSITIVE << endl;
-    cout << CGAL::NEGATIVE << endl;
-    cout << "***************" << endl;
-    cout << CGAL::oriented_side(K2::Point_2(2, 0),p) << endl;
-    cout << CGAL::oriented_side(K2::Point_2(2, 1),p) << endl;
-    cout << CGAL::oriented_side(K2::Point_2(1, 1),p) << endl;
-    cout << CGAL::oriented_side(K2::Point_2(-1, 1),p) << endl;
-    cout << CGAL::oriented_side(K2::Point_2(0.5, 0.5),p) << endl;
-
-}
-
-int main() {
+int main(int argc, char* argv[]) {
 
    // d1013bug();
 
@@ -1730,8 +1709,8 @@ int main() {
 //    auto c3 = c1*c2;
 //    cout << CGAL::to_double(c3) << endl;
 //    return 0;
-    file_id = 4029;//54.489426 73.433586 -17.990524
-    FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
+    //file_id = 4029;//54.489426 73.433586 -17.990524
+    //FILE *file = fopen(("../data/output" + to_string(file_id) + ".obj").c_str(), "w");
 
 //    vector<FILE*> part_debug_file_list(10);
 //
@@ -1741,36 +1720,11 @@ int main() {
 //        part_id.push_back(0 );
 //    }
 
-    FILE *file0 = fopen(("../data/output" + to_string(file_id) + "_dianyun0.obj").c_str(), "w");
-    FILE *file1 = fopen(("../data/output" + to_string(file_id) + "_dianyun1.obj").c_str(), "w");
-    FILE *file2 = fopen(("../data/output" + to_string(file_id) + "_dianyun2.obj").c_str(), "w");
-    FILE *file3 = fopen(("../data/output" + to_string(file_id) + "_dianyun3.obj").c_str(), "w");
-    FILE *file4 = fopen(("../data/output" + to_string(file_id) + "_dianyun4.obj").c_str(), "w");
-    FILE *file4_5 = fopen(("../data/output" + to_string(file_id) + "_dianyun4.5.obj").c_str(), "w");
-    FILE *file5 = fopen(("../data/output" + to_string(file_id) + "_dianyun5.obj").c_str(), "w");
-    FILE *file6 = fopen(("../data/output" + to_string(file_id) + "_dianyun6.obj").c_str(), "w");
-    FILE *file7 = fopen(("../data/output" + to_string(file_id) + "_dianyun7.obj").c_str(), "w");
-    FILE *file8 = fopen(("../data/output" + to_string(file_id) + "_dianyun8.obj").c_str(), "w");
-    FILE *file9 = fopen(("../data/output" + to_string(file_id) + "_dianyun9.obj").c_str(), "w");
-    FILE *file10 = fopen(("../data/output" + to_string(file_id) + "_dianyun10.obj").c_str(), "w");
-    FILE *file11 = fopen(("../data/output" + to_string(file_id) + "_dianyun11.obj").c_str(), "w");
-    FILE *file12 = fopen(("../data/output" + to_string(file_id) + "_dianyun12.obj").c_str(), "w");
-    FILE *file13 = fopen(("../data/output" + to_string(file_id) + "_dianyun13.off").c_str(), "w");
-    FILE *file14 = fopen(("../data/output" + to_string(file_id) + "_dianyun14.obj").c_str(), "w");
-    FILE *file15 = fopen(("../data/output" + to_string(file_id) + "_dianyun15.obj").c_str(), "w");
-    FILE *file16 = fopen(("../data/output" + to_string(file_id) + "_dianyun16.obj").c_str(), "w");
+    string input_filename(argv[1]);
+    FILE *file9 = fopen( (input_filename + "_9.obj").c_str(), "w");
+    FILE *file10 = fopen( (input_filename + "_10.obj").c_str(), "w");
+    FILE *file13 = fopen( (input_filename + "_13.off").c_str(), "w");
 
-    FILE *file21 = fopen(("../data/output" + to_string(file_id) + "_dianyun21.obj").c_str(), "w");
-    FILE *file22 = fopen(("../data/output" + to_string(file_id) + "_dianyun22.obj").c_str(), "w");
-    FILE *file23 = fopen(("../data/output" + to_string(file_id) + "_dianyun23.obj").c_str(), "w");
-
-
-    FILE *fileis1 = fopen(("../data/output" + to_string(file_id) + "_dianyunis1.obj").c_str(), "w");
-    FILE *fileis2 = fopen(("../data/output" + to_string(file_id) + "_dianyunis2.obj").c_str(), "w");
-    FILE *fileis3 = fopen(("../data/output" + to_string(file_id) + "_dianyunis3.obj").c_str(), "w");
-
-    FILE *filedebug2_1 = fopen(("../data/output" + to_string(file_id) + "_dianyundebug2_1.obj").c_str(), "w");
-    FILE *filedebug2_2 = fopen(("../data/output" + to_string(file_id) + "_dianyundebug2_2.obj").c_str(), "w");
 
     // freopen("../debugoutput.txt","w",stdout);
     default_move = 0.01;
@@ -1791,11 +1745,17 @@ int main() {
 
    // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/Armadillo.obj")); grid_len = 4.5; double default_move_dist =1;
 
+
+
   //3.59
-    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/bunny.obj")); grid_len = 0.1; double default_move_dist = 0.05;
+    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
+    double default_move_dist = 0.05;
+    grid_len = stod(string(argv[2]));
     //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
-        for(int i=0;i<mesh->FaceSize();i++){
-        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
+    if(argc > 3 ) {
+        for (int i = 0; i < mesh->FaceSize(); i++) {
+            mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist =  stod(string(argv[3]));
+        }
     }
   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2")); grid_len = 0.6; double default_move_dist = 0.01;
 //    for(int i=0;i<mesh->FaceSize();i++){
@@ -2198,10 +2158,6 @@ int main() {
                             }
                             return out_side;
                         };
-
-
-
-
 
                 set < MeshKernel::iGameFaceHandle > face_set;
                 vector<MeshKernel::iGameFaceHandle > face_list;
