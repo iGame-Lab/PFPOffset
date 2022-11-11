@@ -25,12 +25,20 @@ file (GLOB CppFile
         )
 add_executable(Thicken2 main.cpp lib_impl.cpp DSU.cpp ${CppFile})
 
-target_link_libraries(Thicken2
-        /opt/homebrew/lib/libgmp.dylib
-        -lpthread
-        /opt/homebrew/lib/libmpfr.dylib
-        ${Boost_LIBRARY_DIRS}
-        OsqpEigen::OsqpEigen
-        )
-
-
+if(APPLE)
+    target_link_libraries(Thicken2
+            /opt/homebrew/lib/libgmp.dylib
+            -lpthread
+            /opt/homebrew/lib/libmpfr.dylib
+            ${Boost_LIBRARY_DIRS}
+            OsqpEigen::OsqpEigen
+            )
+else()
+    target_link_libraries(Thicken2
+            -lgmp
+            -lpthread
+            -lmpfr
+            ${Boost_LIBRARY_DIRS}
+            OsqpEigen::OsqpEigen
+            )
+endif()

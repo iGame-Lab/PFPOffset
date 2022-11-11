@@ -47,7 +47,7 @@ shared_ptr<CGALPolygon>cgal_polygon;
 
 Tree cgal_global_aabbtree;
 double default_move = 0.1;
-int thread_num = 14;
+int thread_num = 20;
 int file_id;
 const double tolerance = 0.2;
 
@@ -1749,14 +1749,38 @@ int main(int argc, char* argv[]) {
 
   //3.59
     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
+    mesh->build_fast();
     double default_move_dist = 0.05;
-    grid_len = stod(string(argv[2]));
+    if(argc > 2 )
+        grid_len = stod(string(argv[2]));
+    else
+    {
+        double sum = 0;
+        for(int i = 0;i<mesh->EdgeSize();i++ ){
+            sum += (mesh->fast_iGameVertex[mesh->fast_iGameEdge[i].vh(0)] - mesh->fast_iGameVertex[mesh->fast_iGameEdge[i].vh(1)]).norm();
+        }
+        sum /= mesh->EdgeSize();
+        grid_len = sum * 2.5;
+    }
     //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
     if(argc > 3 ) {
         for (int i = 0; i < mesh->FaceSize(); i++) {
             mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist =  stod(string(argv[3]));
         }
     }
+    else if(*input_filename.rbegin() != '2') {
+        double sum = 0;
+        for(int i = 0;i<mesh->EdgeSize();i++ ){
+            sum += (mesh->fast_iGameVertex[mesh->fast_iGameEdge[i].vh(0)] - mesh->fast_iGameVertex[mesh->fast_iGameEdge[i].vh(1)]).norm();
+        }
+        sum /= mesh->EdgeSize();
+        default_move_dist = sum / 5;
+        cout <<"default_move_dist : "<< default_move_dist << endl;
+        for(int i=0;i<mesh->FaceSize();i++){
+            mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
+        }
+    }
+    mesh->build_fast();
   // mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/debug5.obj2")); grid_len = 0.6; double default_move_dist = 0.01;
 //    for(int i=0;i<mesh->FaceSize();i++){
 //        mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist = default_move_dist;
@@ -1774,7 +1798,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    mesh->build_fast();
+
 
     //mix(30);
 
@@ -2114,6 +2138,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
+
+
+    cout << "each_grid_cnt succ2 " <<endl;
     // 上述代码完成距离场建格子的过程 8 ;
     atomic<int>sum_face_size(0);
     atomic<int>maxx_face_size(0);
