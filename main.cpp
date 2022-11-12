@@ -1,3 +1,4 @@
+#define CGAL_HAS_THREADS
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -34,6 +35,7 @@
 #include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/merge_border_vertices.h>
 #include <CGAL/Polygon_mesh_processing/manifoldness.h>
+#include <CGAL/Polygon_mesh_processing/intersection.h>
 typedef CGAL::Constrained_Delaunay_triangulation_2<K2> CDT;
 //#include "BVH.h"
 
@@ -191,7 +193,7 @@ vector <vector<int>> DirectedGridEdge = {{1, 2, 3},
                                  { 7},
                                  { 7}};
 
-MeshKernel::iGameVertex getTinyGridVertex(const MeshKernel::iGameVertex& small, const MeshKernel::iGameVertex& big,int k) {
+MeshKernel::iGameVertex getGridiGameVertex(const MeshKernel::iGameVertex& small, const MeshKernel::iGameVertex& big, int k) {
 
     double x = small.x();
     double y = small.y();
@@ -453,8 +455,11 @@ struct ApproximateField {
    // vector<K2::Triangle_3 > bounded_face_k2;
     MeshKernel::iGameFaceHandle fh;
     ApproximateField(){}
+    ~ApproximateField(){}
     ApproximateField(MeshKernel::iGameFaceHandle fh) {
+
         this->fh=fh;
+        //this->mu = make_shared<std::mutex>();
         origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(0)]);
         origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(1)]);
         origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(2)]);
@@ -703,33 +708,29 @@ struct ApproximateField {
        // bounded_face.push_back(outer_face[0]);
 
 
+        vector<K2::Point_3> vertices_list;
+        std::vector<std::vector<std::size_t> > faces_list;
 
+        for (int i = 0; i < 6; i++) {
+            vertices_list.push_back(iGameVertex_to_Point_K2(bound_face_vertex[i]));
+        }
+        for (auto i: bound_face_id) {
+            faces_list.push_back({std::size_t(i[0]), std::size_t(i[1]), std::size_t(i[2])});
+        }
+
+
+        PMP::polygon_soup_to_polygon_mesh(vertices_list, faces_list, poly, CGAL::parameters::all_default());
 
     // 6个四面体法，防止相交处理麻烦 并且用tet 来判断内外这样每一个面的偏移就是6个tet，；
     }
 
     bool in_field(K2::Point_3 v){
-        if(!in_mesh_ptr) {
-            CGAL::Polyhedron_3<K2> poly;
-            vector<K2::Point_3> vertex_list;
-            std::vector<std::vector<std::size_t> > face_list;
 
-            for (int i = 0; i < 6; i++) {
-                vertex_list.push_back(iGameVertex_to_Point_K2(bound_face_vertex[i]));
-            }
-            for (auto i: bound_face_id) {
-                face_list.push_back({std::size_t(i[0]), std::size_t(i[1]), std::size_t(i[2])});
-            }
-
-
-            PMP::polygon_soup_to_polygon_mesh(vertex_list, face_list, poly, CGAL::parameters::all_default());
-           // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(poly);
-            in_mesh_ptr = std::make_shared<CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> >(poly);
-            //CGAL::Bounded_side res = (inside)(v);
-        }
-        if ((*in_mesh_ptr)(v) == CGAL::ON_BOUNDED_SIDE)
+        CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(poly);
+        if (inside(v) == CGAL::ON_BOUNDED_SIDE)
             return true;
         return false;
+
     }
 
 
@@ -748,37 +749,11 @@ struct ApproximateField {
         }
         return ret;
     }
-    std::shared_ptr<CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> > in_mesh_ptr;
-    ApproximateField(MeshKernel::iGameFaceHandle fh,vector<MeshKernel::iGameVertex>moved_vertex){
-        this->fh=fh;
-        origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(0)]);
-        origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(1)]);
-        origin_vertices.push_back(mesh->fast_iGameVertex[mesh->fast_iGameFace[fh].vh(2)]);
-        //TODO 注意分解
-        MeshKernel::iGameVertex normal = ((origin_vertices[1] - origin_vertices[0]) % (origin_vertices[2] - origin_vertices[0])).normalize();
-        for(int i=0;i<3;i++){
-            extend_vertices.push_back(moved_vertex[i]);
-        }
-        MeshKernel::iGameVertex new_normal = ((extend_vertices[1] - extend_vertices[0]) % (extend_vertices[2] - extend_vertices[0])).normalize();
-        if(new_normal * normal <0)
-            swap(extend_vertices[0],extend_vertices[1]);
+public:
+    CGAL::Polyhedron_3<K2> poly;
+   // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> * in_mesh_ptr;
+   // std::shared_ptr<std::mutex> mu;
 
-        for(int i=0;i<3;i++) {
-            tet_list.emplace_back(iGameVertex_to_Point_K2(origin_vertices[0]),
-                                  iGameVertex_to_Point_K2(origin_vertices[1]),
-                                  iGameVertex_to_Point_K2(origin_vertices[2]),
-                                  iGameVertex_to_Point_K2(extend_vertices[i]));
-
-        }
-        for(int i=0;i<3;i++) {
-            tet_list.emplace_back(iGameVertex_to_Point_K2(extend_vertices[0]),
-                                  iGameVertex_to_Point_K2(extend_vertices[1]),
-                                  iGameVertex_to_Point_K2(extend_vertices[2]),
-                                  iGameVertex_to_Point_K2(origin_vertices[i]));
-        }
-
-        // 6个四面体法，防止相交处理麻烦 并且用tet 来判断内外这样每一个面的偏移就是6个tet，；
-    }
 };
 vector<ApproximateField>faces_approximate_field;
 
@@ -956,7 +931,7 @@ bool face_through_grid(const MeshKernel::iGameVertex& small, const MeshKernel::i
                        K::Point_3(v[2].x(),v[2].y(),v[2].z()));
     vector<K::Point_3>grid_vertex(8);
     for(int i=0;i<8;i++)
-        grid_vertex[i] = iGameVertex_to_Point(getTinyGridVertex(small,big,i));
+        grid_vertex[i] = iGameVertex_to_Point(getGridiGameVertex(small, big, i));
 
     for(auto  each_container_face : container_grid_face){
         K::Triangle_3 tri1(grid_vertex[each_container_face[0]],
@@ -1469,14 +1444,19 @@ int main(int argc, char* argv[]) {
             for (int jj = 0; jj < DirectedGridEdge[ii].size(); jj++) {
                 int from = ii;
                 int to = DirectedGridEdge[ii][jj];
-                MeshKernel::iGameVertex fv = getTinyGridVertex(small, big, from);
-                MeshKernel::iGameVertex tv = getTinyGridVertex(small, big, to);
+                MeshKernel::iGameVertex fv = getGridiGameVertex(small, big, from);
+                MeshKernel::iGameVertex tv = getGridiGameVertex(small, big, to);
                 fprintf(file9, "v %lf %lf %lf\n", fv.x(), fv.y(), fv.z());
                 fprintf(file9, "v %lf %lf %lf\n", tv.x(), tv.y(), tv.z());
                 fprintf(file9, "l %d %d\n", f3_id, f3_id + 1);
                 f3_id += 2;
             }
         }
+    }
+    std::vector<std::vector<std::size_t> > each_grid_face_list;
+    for(auto  each_container_face : container_grid_face){
+        each_grid_face_list.push_back({(size_t)each_container_face[0],(size_t)each_container_face[1],(size_t)each_container_face[2]});
+        each_grid_face_list.push_back({(size_t)each_container_face[2],(size_t)each_container_face[3],(size_t)each_container_face[0]});
     }
 
 
@@ -1504,7 +1484,16 @@ int main(int argc, char* argv[]) {
                 set <MeshKernel::iGameFaceHandle > face_set;
                 vector<MeshKernel::iGameFaceHandle > face_list;
                // vector<MeshKernel::iGameFaceHandle > possible_face_list;
-                vector<MeshKernel::iGameFace> vf;
+
+                MeshKernel::iGameVertex small = getGridVertex(each_grid->first, 0);
+                MeshKernel::iGameVertex big = getGridVertex(each_grid->first, 7);
+                std::vector<K2::Point_3> ps;
+                for(int i=0;i<8;i++){
+                    ps.push_back(iGameVertex_to_Point_K2(getGridiGameVertex(small,big,i)));
+                }
+                //CGAL::Polyhedron_3<K2> frame_poly;
+                //PMP::polygon_soup_to_polygon_mesh(ps, each_grid_face_list, frame_poly, CGAL::parameters::all_default());
+
                 for (int j = 0; j < 8; j++) {
                     grid g = getGridFrameVertex(each_grid->first, j);
                     unordered_map<grid, GridVertex, grid_hash, grid_equal>::iterator it = frame_grid_mp.find(g);
@@ -1521,20 +1510,23 @@ int main(int argc, char* argv[]) {
                // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
               //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11  ))continue;
 
-
-                MeshKernel::iGameVertex small = getGridVertex(each_grid->first, 0);
-                MeshKernel::iGameVertex big = getGridVertex(each_grid->first, 7);
-
-                for (auto i: face_list) {
-                    vf.push_back(mesh->fast_iGameFace.at(i));
-                }
-
                 vector<vector<MeshKernel::iGameVertex> > maybe_used_face;
                 vector<vector<MeshKernel::iGameVertex> > maybe_used_side_face;
 
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
                 set<int> field_through_set;
-                //continue;
+
+//                for (MeshKernel::iGameFaceHandle i: face_list) { // 就挺慢的
+//                    bool useful = false;
+//                    if(faces_approximate_field[i].in_field(midpoint(K2::Segment_3(ps[0],ps[7])))){
+//                        useful = true;
+//                    }
+//                    if(!useful)
+//                        useful = CGAL::Polygon_mesh_processing::do_intersect(faces_approximate_field[i].poly,frame_poly);
+//                    if(useful)
+//                        field_through_set.insert(i);
+//                }
+
                 for (MeshKernel::iGameFaceHandle i: face_list) { // 就挺慢的
                     for(auto j : faces_approximate_field[i].tet_list){
                         if(tet_through_grid(small,big,j)){
@@ -1545,6 +1537,11 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 }
+
+                //continue;
+
+
+                //continue;
 
 
                 for (MeshKernel::iGameFaceHandle i: face_list) {
@@ -1625,7 +1622,7 @@ int main(int argc, char* argv[]) {
                             vector<MeshKernel::iGameVertex> vs;
 
                             for (int j = 0; j < 8; j++) {
-                                vs.push_back(getTinyGridVertex(tinygrid_st, tinygrid_end, j));
+                                vs.push_back(getGridiGameVertex(tinygrid_st, tinygrid_end, j));
                             }
                             // 这里采用大三角形法： ;
                             K2::Triangle_3 pla(iGameVertex_to_Point_K2(v0),

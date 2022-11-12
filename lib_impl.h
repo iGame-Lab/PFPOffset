@@ -73,14 +73,14 @@ struct triangle_equal
 };
 
 class CGALPolygon {
-    Polyhedron poly;
-    shared_ptr <CGAL::Side_of_triangle_mesh<Polyhedron, K >> inside;
+    CGAL::Polyhedron_3<K2> poly;
+    shared_ptr <CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2 >> inside;
 
 public:
     CGALPolygon() {}
 
     CGALPolygon(const shared_ptr <MeshKernel::SurfaceMesh> &mesh) {
-        std::vector<Point> ps;
+        std::vector<K2::Point_3> ps;
         std::vector<std::vector<std::size_t> > fs;
         for (int i = 0; i < mesh->VertexSize(); i++) {
             ps.emplace_back(mesh->vertices(MeshKernel::iGameVertexHandle(i)).x(),
@@ -93,15 +93,16 @@ public:
                           static_cast<unsigned long long>(mesh->faces(MeshKernel::iGameFaceHandle(i)).vh(1).idx()),
                           static_cast<unsigned long long>(mesh->faces(MeshKernel::iGameFaceHandle(i)).vh(2).idx())});
         }
-        PMP::polygon_soup_to_polygon_mesh(ps, fs, poly, CGAL::parameters::all_default());
-        inside = make_shared<CGAL::Side_of_triangle_mesh<Polyhedron, K> >(poly);
+        //PMP::polygon_soup_to_polygon_mesh(ps, fs, poly, CGAL::parameters::all_default());
+        inside = make_shared<CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> >(poly);
 
 
 
     };
 
     bool inMesh(MeshKernel::iGameVertex v) {
-        CGAL::Bounded_side res = (*inside)(Point(v.x(), v.y(), v.z()));
+       // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2 > inside(poly);
+        CGAL::Bounded_side res = (*inside)(K2::Point_3(v.x(), v.y(), v.z()));
         if (res == CGAL::ON_BOUNDED_SIDE)
             return true;
         return false;
