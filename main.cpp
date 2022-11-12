@@ -501,14 +501,15 @@ struct ApproximateField {
             bound_face_vertex.push_back(origin_vertices[i]);
         for(int i=0;i<3;i++)
             bound_face_vertex.push_back(extend_vertices[i]);
-        MeshKernel::iGameVertex c(0,0,0);
+       // MeshKernel::iGameVertex c(0,0,0);
+        K2::Point_3 zero(0,0,0);
+        K2::Vector_3 vv(0,0,0);
         for(int i=0;i<3;i++){
-            c+= origin_vertices[i];
-            c+= extend_vertices[i];
+            vv += (iGameVertex_to_Point_K2(origin_vertices[i]) -zero);
+            vv += (iGameVertex_to_Point_K2(extend_vertices[i]) -zero);
         }
-        c/=6;
-        center = iGameVertex_to_Point_K2(c);
-
+        //c/=6;
+        center = zero + (vv / 6);
 
         int cnt = 0;
         for(int i=0;i<3;i++) {
@@ -717,20 +718,19 @@ struct ApproximateField {
         for (auto i: bound_face_id) {
             faces_list.push_back({std::size_t(i[0]), std::size_t(i[1]), std::size_t(i[2])});
         }
+        poly = new CGAL::Polyhedron_3<K2>();
 
-
-        PMP::polygon_soup_to_polygon_mesh(vertices_list, faces_list, poly, CGAL::parameters::all_default());
+        PMP::polygon_soup_to_polygon_mesh(vertices_list, faces_list, *poly, CGAL::parameters::all_default());
+        inside_ptr = new CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2>(*poly);
 
     // 6个四面体法，防止相交处理麻烦 并且用tet 来判断内外这样每一个面的偏移就是6个tet，；
     }
 
-    bool in_field(K2::Point_3 v){
-
-        CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(poly);
-        if (inside(v) == CGAL::ON_BOUNDED_SIDE)
+    bool in_field(K2::Point_3 v) {
+        //CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(*poly);
+        if ((*inside_ptr)(v) == CGAL::ON_BOUNDED_SIDE)
             return true;
         return false;
-
     }
 
 
@@ -750,8 +750,9 @@ struct ApproximateField {
         return ret;
     }
 public:
-    CGAL::Polyhedron_3<K2> poly;
-   // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> * in_mesh_ptr;
+    CGAL::Polyhedron_3<K2> * poly;
+
+     CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> * inside_ptr;
    // std::shared_ptr<std::mutex> mu;
 
 };
@@ -1491,8 +1492,8 @@ int main(int argc, char* argv[]) {
                 for(int i=0;i<8;i++){
                     ps.push_back(iGameVertex_to_Point_K2(getGridiGameVertex(small,big,i)));
                 }
-                //CGAL::Polyhedron_3<K2> frame_poly;
-                //PMP::polygon_soup_to_polygon_mesh(ps, each_grid_face_list, frame_poly, CGAL::parameters::all_default());
+                CGAL::Polyhedron_3<K2> frame_poly;
+                PMP::polygon_soup_to_polygon_mesh(ps, each_grid_face_list, frame_poly, CGAL::parameters::all_default());
 
                 for (int j = 0; j < 8; j++) {
                     grid g = getGridFrameVertex(each_grid->first, j);
@@ -1506,6 +1507,8 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
+                CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside_frame(frame_poly);
+
                // if(!(each_grid->first.x == 17 && each_grid->first.y == 27 && each_grid->first.z == 10  ))continue;
                // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
               //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11  ))continue;
@@ -1516,32 +1519,24 @@ int main(int argc, char* argv[]) {
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
                 set<int> field_through_set;
 
-//                for (MeshKernel::iGameFaceHandle i: face_list) { // 就挺慢的
-//                    bool useful = false;
-//                    if(faces_approximate_field[i].in_field(midpoint(K2::Segment_3(ps[0],ps[7])))){
-//                        useful = true;
-//                    }
-//                    if(!useful)
-//                        useful = CGAL::Polygon_mesh_processing::do_intersect(faces_approximate_field[i].poly,frame_poly);
-//                    if(useful)
-//                        field_through_set.insert(i);
-//                }
-
                 for (MeshKernel::iGameFaceHandle i: face_list) { // 就挺慢的
-                    for(auto j : faces_approximate_field[i].tet_list){
-                        if(tet_through_grid(small,big,j)){
-                            //field_tet_list.push_back(j);
-                            field_through_set.insert(i);
-                            break;
-                            //debug_tet_list_belong_face.push_back(i);
+                    bool useful = false;
+                    if(faces_approximate_field[i].in_field(midpoint(K2::Segment_3(ps[0],ps[7])))){
+                        useful = true;
+                    }
+                    if(!useful)
+                    {
+                        if(inside_frame(faces_approximate_field[i].center) == CGAL::ON_BOUNDED_SIDE){
+                            useful = true;
                         }
                     }
+                    if(!useful)
+                        useful = CGAL::Polygon_mesh_processing::do_intersect(*faces_approximate_field[i].poly,frame_poly);
+                    if(useful)
+                        field_through_set.insert(i);
                 }
 
-                //continue;
 
-
-                //continue;
 
 
                 for (MeshKernel::iGameFaceHandle i: face_list) {
