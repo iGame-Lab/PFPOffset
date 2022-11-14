@@ -49,28 +49,17 @@ typedef K::Point_3 Point;
 typedef CGAL::Polyhedron_3<K> Polyhedron;
 typedef K::Ray_3 Ray;
 typedef K::Line_3 Line;
-typedef K::Triangle_3 Triangle;
-typedef std::list<Triangle>::iterator Iterator;
-typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
-typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
-typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
-typedef K::Tetrahedron_3  Tetrahedron;
-namespace PMP = CGAL::Polygon_mesh_processing;
 typedef CGAL::Exact_predicates_exact_constructions_kernel K2;
+typedef std::list< K2::Triangle_3>::iterator Iterator;
+typedef CGAL::AABB_triangle_primitive<K2, Iterator> Primitive;
+typedef CGAL::AABB_traits<K2, Primitive> AABB_triangle_traits;
+typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
+namespace PMP = CGAL::Polygon_mesh_processing;
+
 
 
 using namespace std;
 
-struct triangle_hash{
-    size_t operator () (Triangle x) const {
-        return hash_value(x.vertex(0)) ^ (hash_value(x.vertex(1))) ^ (hash_value(x.vertex(2)));
-    }};
-struct triangle_equal
-{
-    bool operator() (Triangle a,  Triangle b) const {
-        return a.vertex(0) == b.vertex(0)  &&  a.vertex(1) == b.vertex(1) &&  a.vertex(2) == b.vertex(2);
-    }
-};
 
 class CGALPolygon {
     CGAL::Polyhedron_3<K2> * poly;
@@ -97,8 +86,6 @@ public:
         PMP::polygon_soup_to_polygon_mesh(ps, fs, *poly, CGAL::parameters::all_default());
         inside = new CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2>(*poly);
 
-
-
     };
 
     bool inMesh(MeshKernel::iGameVertex v) {
@@ -110,24 +97,8 @@ public:
     }
 };
 
-MeshKernel::iGameVertex cgal_aabbtree_query(const std::vector<MeshKernel::iGameFace>& f_list,
-                                            MeshKernel::iGameVertex v,
-                                            std::shared_ptr<MeshKernel::SurfaceMesh>mesh,
-                                            int & side,std::shared_ptr<CGALPolygon>cgalinmesh);
 
 double cgal_vertex_triangle_dist(MeshKernel::iGameFace f, MeshKernel::iGameVertex v, std::shared_ptr<MeshKernel::SurfaceMesh>mesh) ;
-
-
-double cgal_vertex_plane_dist(MeshKernel::iGameFace f, MeshKernel::iGameVertex v, std::shared_ptr<MeshKernel::SurfaceMesh>mesh);
-
-bool CGALPlaneSegIntersect(MeshKernel::iGameFace f, MeshKernel::iGameVertex v1,MeshKernel::iGameVertex v2,std::shared_ptr<MeshKernel::SurfaceMesh>mesh);
-
-void QEF_calculate(std::vector<double>minP,std::vector<double>maxP, int pntNum, vector<double> sx, vector<double> sy, vector<double> sz,
-                   vector<double> nx, vector<double> ny, vector<double> nz, vector<double> &pp);
-
-
-
-bool vertex_field_state(MeshKernel::iGameFaceHandle fh , MeshKernel::iGameVertex v,std::shared_ptr<MeshKernel::SurfaceMesh>mesh);
 
 
 #endif //THICKEN2_LIB_IMPL_H

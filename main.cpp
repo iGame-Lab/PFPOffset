@@ -45,7 +45,6 @@ shared_ptr <MeshKernel::SurfaceMesh> mesh;
 
 shared_ptr<CGALPolygon>cgal_polygon;
 
-Tree cgal_global_aabbtree;
 double default_move = 0.1;
 int thread_num = 20;
 
@@ -760,7 +759,7 @@ vector<ApproximateField>faces_approximate_field;
 
 
 //todo : 这里可以改成aabbtree 版本 6 tet 升级为一颗aabbtree ！！！！！！！！！！1  重大优化
-bool check_in_approximate_field_list(const set<int> &nearby_field_id_list ,K2::Point_3 v) {
+bool check_in_approximate_field_list(const vector<int> &nearby_field_id_list ,K2::Point_3 v) {
     // 检查接近
     //vector<ApproximateField>nearest_face;
     vector<K2::Point_3> check_point_list;
@@ -919,57 +918,6 @@ bool vertex_in_tiny_grid(const MeshKernel::iGameVertex& small,const MeshKernel::
 K2::Point_3 point_k_to_k2(K::Point_3 p){
     return K2::Point_3 (p.x(),p.y(),p.z());
 }
-
-
-bool face_through_grid(const MeshKernel::iGameVertex& small, const MeshKernel::iGameVertex& big,
-                       const vector<MeshKernel::iGameVertex>& v){
-    for(int i=0;i<v.size();i++){
-        if(vertex_in_tiny_grid(small,big,v[i]))
-            return true;
-    }
-    K::Triangle_3 tri(K::Point_3(v[0].x(),v[0].y(),v[0].z()),
-                       K::Point_3(v[1].x(),v[1].y(),v[1].z()),
-                       K::Point_3(v[2].x(),v[2].y(),v[2].z()));
-    vector<K::Point_3>grid_vertex(8);
-    for(int i=0;i<8;i++)
-        grid_vertex[i] = iGameVertex_to_Point(getGridiGameVertex(small, big, i));
-
-    for(auto  each_container_face : container_grid_face){
-        K::Triangle_3 tri1(grid_vertex[each_container_face[0]],
-                           grid_vertex[each_container_face[1]],
-                           grid_vertex[each_container_face[2]]);
-        K::Triangle_3 tri2(grid_vertex[each_container_face[2]],
-                           grid_vertex[each_container_face[3]],
-                           grid_vertex[each_container_face[0]]);
-        if(sqrt(squared_distance(tri1,tri)) < myeps){ // 先不管
-            return true;
-        }
-        if(sqrt(squared_distance(tri2,tri)) < myeps){ //先不管
-            return true;
-        }
-    }
-
-
-    return false;
-}
-
-
-
-
-bool tet_through_grid(const MeshKernel::iGameVertex& small, const MeshKernel::iGameVertex& big,
-                       const K2::Tetrahedron_3& tet){
-
-    vector<MeshKernel::iGameVertex> v;
-    for(int i=0;i<4;i++){
-        v.push_back(Point_K2_to_iGameVertex(tet.vertex(i)));
-    }
-    for(vector<int> i : vector<vector<int> > {{0,1,2},{0,2,3},{1,2,3},{0,1,3}}){
-        if(face_through_grid(small,big,{v[i[0]],v[i[1]],v[i[2]]}))
-            return true;
-    }
-    return false;
-}
-
 
 
 
@@ -1244,26 +1192,7 @@ int main(int argc, char* argv[]) {
 
     cgal_polygon = make_shared<CGALPolygon>(mesh);
 
-    std::list <Triangle> triangles;
-    unordered_map <Triangle, MeshKernel::iGameFaceHandle, triangle_hash, triangle_equal> triangle_map;
-    for (int i = 0; i < mesh->FaceSize(); i++) {
-        Point_3 p0(mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(0)].x(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(0)].y(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(0)].z());
-
-        Point_3 p1(mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(1)].x(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(1)].y(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(1)].z());
-
-        Point_3 p2(mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(2)].x(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(2)].y(),
-                   mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(2)].z());
-        Triangle t(p0, p1, p2);
-        triangle_map[t] = MeshKernel::iGameFaceHandle(i);
-        triangles.push_back(t);
-    }
-    cgal_global_aabbtree = Tree(triangles.begin(), triangles.end());
-
+    std::list < K2::Triangle_3> triangles;
 
     mesh->initBBox();
 
@@ -1396,18 +1325,8 @@ int main(int argc, char* argv[]) {
                 if(each_grid_cnt % (thread_num*1000) == now_id)
                     printf("each_grid_cnt %d/%d\n",each_grid_cnt,(int)frame_grid_mp.size());
 
-
                 MeshKernel::iGameVertex grid_vertex = getGridVertex(each_grid->first, 0);
-                MeshKernel::iGameFaceHandle near_face_handle =
-                        triangle_map[*cgal_global_aabbtree.closest_point_and_primitive(
-                                Point_3(grid_vertex.x(), grid_vertex.y(), grid_vertex.z())).second];
 
-
-                each_grid->second.face_list.push_back(near_face_handle);
-                for (auto i: mesh->fast_iGameFace[near_face_handle].getSortedVertexHandle()) {
-                    for (auto j: mesh->FastNeighborFhOfVertex_[i])
-                        each_grid->second.face_list.push_back(j);
-                }
                 sort(each_grid->second.face_list.begin(), each_grid->second.face_list.end());
                 each_grid->second.face_list.resize(
                         unique(each_grid->second.face_list.begin(), each_grid->second.face_list.end()) -
@@ -1433,6 +1352,7 @@ int main(int argc, char* argv[]) {
     };// 20 10 10 5
 
     long long  sum_grid = 0;
+    vector<vector<size_t> >face_type_012{{0,1,2}};
 
 
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
@@ -1464,11 +1384,11 @@ int main(int argc, char* argv[]) {
 
     cout << "each_grid_cnt succ2 " <<endl;
     // 上述代码完成距离场建格子的过程 8 ;
-    atomic<int>sum_face_size(0);
-    atomic<int>maxx_face_size(0);
-    atomic<int> qq1(0);
-    atomic<int> qq2(0);
-    std::mutex mu;
+   // atomic<int>sum_face_size(0);
+   // atomic<int>maxx_face_size(0);
+    //atomic<int> qq1(0);
+   // atomic<int> qq2(0);
+   // std::mutex mu;
     std::vector<std::shared_ptr<std::thread> > each_frame_thread(thread_num);
     vector<K2::Point_3> final_gen_vertex;
     vector<vector<size_t> > final_gen_face;
@@ -1517,9 +1437,9 @@ int main(int argc, char* argv[]) {
                 vector<vector<MeshKernel::iGameVertex> > maybe_used_side_face;
 
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
-                set<int> field_through_set;
+                vector<int> field_through_list;
 
-                for (MeshKernel::iGameFaceHandle i: face_list) { // 就挺慢的
+                for (MeshKernel::iGameFaceHandle i: face_list) {
                     bool useful = false;
                     if(faces_approximate_field[i].in_field(midpoint(K2::Segment_3(ps[0],ps[7])))){
                         useful = true;
@@ -1533,14 +1453,28 @@ int main(int argc, char* argv[]) {
                     if(!useful)
                         useful = CGAL::Polygon_mesh_processing::do_intersect(*faces_approximate_field[i].poly,frame_poly);
                     if(useful)
-                        field_through_set.insert(i);
+                        field_through_list.push_back(i);
                 }
 
 
+                function<bool(K2::Triangle_3)>  triangle_through_grid = [&](K2::Triangle_3 tri) {
+                    if(inside_frame(centroid(tri))){
+                        return true;
+                    }
+                    CGAL::Polyhedron_3<K2> this_face;
+                    vector<K2::Point_3> vs{tri.vertex(0),tri.vertex(1),tri.vertex(2)};
+                    PMP::polygon_soup_to_polygon_mesh(vs, face_type_012, this_face, CGAL::parameters::all_default());
+                    return CGAL::Polygon_mesh_processing::do_intersect(frame_poly,this_face);
+                };
 
 
-                for (MeshKernel::iGameFaceHandle i: face_list) {
-                    for(auto j : faces_approximate_field[i].bound_face_id){
+
+
+
+               // continue;
+                // 第二关
+                for (int i: field_through_list) { //是不是可以aabb树的改进 构建全局aabb树
+                    for(auto j : faces_approximate_field[i].bound_face_id){ //这里还可以优化
                         vector<MeshKernel::iGameVertex> tmp{faces_approximate_field[i].bound_face_vertex[j[0]],
                                                         faces_approximate_field[i].bound_face_vertex[j[1]],
                                                         faces_approximate_field[i].bound_face_vertex[j[2]]};
@@ -1549,9 +1483,10 @@ int main(int argc, char* argv[]) {
                                                 iGameVertex_to_Point_K2(tmp[2])
                                                 );
                         if(j[0] >= 3 || j[1] >= 3 || j[2] >= 3) { // 去掉原表面
-                            if(face_through_grid(small, big, tmp)) {
+                            if(triangle_through_grid(tri_this)) {
+
                                 bool flag = true;
-                                for(auto k : field_through_set) {
+                                for(auto k : field_through_list) {
                                     if(k!=i){
                                         bool is_cutted = false;
                                         for(vector<int> other_field_face : faces_approximate_field[k].bound_face_id){ //单场完全覆盖剪支
@@ -1601,13 +1536,17 @@ int main(int argc, char* argv[]) {
                                 }
                                 if(flag)
                                     maybe_used_face.push_back(tmp);
-                                if(flag)qq1++;
-                                else qq2++;
+//                                if(flag)qq1++;
+//                                else qq2++;
                             }
                         }
                     }
                 }
 
+
+             //   continue;
+
+                // 第三关
                 std::function<vector<K2::Point_3 >(
                         MeshKernel::iGameVertex, MeshKernel::iGameVertex, MeshKernel::iGameVertex,
                         MeshKernel::iGameVertex, MeshKernel::iGameVertex)> get_grid_intersect_triangle
@@ -1731,6 +1670,12 @@ int main(int argc, char* argv[]) {
                         }//10 11 15
                     }
                 }
+
+
+
+
+
+
                 vector<K2::Triangle_3 > generated_face_list;
 
                 for(int i=0;i<maybe_used_face.size();i++) { // 处理单片面的切割
@@ -1822,7 +1767,7 @@ int main(int argc, char* argv[]) {
                        // cout <<"start check "<< endl;
 
                        // bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
-                        bool flag = check_in_approximate_field_list(field_through_set ,CGAL::centroid(tri));
+                        bool flag = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
 
                         // 这个地方是不是可以去掉底相交呢？？？？？
 
@@ -1839,20 +1784,25 @@ int main(int argc, char* argv[]) {
                         if(flag) {
                             continue;
                         }
+
+                       generated_face_list.push_back(K2::Triangle_3(tri.vertex(0),tri.vertex(2),tri.vertex(1)));
 /*****************************/
-                        auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
-                        auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
-                        auto vvv2 = Point_K2_to_iGameVertex(tri.vertex(2));
-                        auto ddd = (vvv1 - vvv0) % (vvv2- vvv0);
-                        //if(ddd*direct <0)
-                           // swap(vvv1,vvv2);
-                        std::unique_lock<std::mutex>lock(mu);
-                        fprintf(file10,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
-                        fprintf(file10,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
-                        fprintf(file10,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
-                        generated_face_list.push_back(K2::Triangle_3(tri.vertex(0),tri.vertex(2),tri.vertex(1)));
-                        fprintf(file10,"f %d %d %d\n",vid,vid+1,vid+2);
-                        vid+=3;
+//                        auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
+//                        auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
+//                        auto vvv2 = Point_K2_to_iGameVertex(tri.vertex(2));
+//
+//                        auto ddd = (vvv1 - vvv0) % (vvv2- vvv0);
+//                        //if(ddd*direct <0)
+//                           // swap(vvv1,vvv2);
+//
+//
+//
+//                        std::unique_lock<std::mutex>lock(mu);
+//                        fprintf(file10,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
+//                        fprintf(file10,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
+//                        fprintf(file10,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
+//                        fprintf(file10,"f %d %d %d\n",vid,vid+1,vid+2);
+//                        vid+=3;
 
                     }
                 }
@@ -1869,7 +1819,7 @@ int main(int argc, char* argv[]) {
     }
     for(int i=0;i<thread_num;i++)
         each_frame_thread[i]->join();
-    cout << "qq1 qq2 "<<qq1 <<" "<< qq2 << endl;
+   // cout << "qq1 qq2 "<<qq1 <<" "<< qq2 << endl;
 
 
     for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++){
