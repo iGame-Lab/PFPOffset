@@ -1434,7 +1434,6 @@ int main(int argc, char* argv[]) {
               //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11  ))continue;
 
                 vector<vector<MeshKernel::iGameVertex> > maybe_used_face;
-                vector<vector<MeshKernel::iGameVertex> > maybe_used_side_face;
 
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
                 vector<int> field_through_list;
@@ -1467,81 +1466,86 @@ int main(int argc, char* argv[]) {
                     return CGAL::Polygon_mesh_processing::do_intersect(frame_poly,this_face);
                 };
 
+                std::unordered_map<std::size_t,int> face_belong_field_mp;
 
-
-
-
-               // continue;
-                // 第二关
-                for (int i: field_through_list) { //是不是可以aabb树的改进 构建全局aabb树
-                    for(auto j : faces_approximate_field[i].bound_face_id){ //这里还可以优化
-                        vector<MeshKernel::iGameVertex> tmp{faces_approximate_field[i].bound_face_vertex[j[0]],
-                                                        faces_approximate_field[i].bound_face_vertex[j[1]],
-                                                        faces_approximate_field[i].bound_face_vertex[j[2]]};
+                std::list<K2::Triangle_3> field_triangles;
+                std::vector<vector<MeshKernel::iGameVertex> > tmp_list;
+                for (int i=0;i< field_through_list.size();i++) {
+                    for(int j=0;j<faces_approximate_field[field_through_list[i]].bound_face_id.size();j++){
+                        vector<MeshKernel::iGameVertex> tmp{faces_approximate_field[field_through_list[i]].bound_face_vertex[faces_approximate_field[field_through_list[i]].bound_face_id[j][0]],
+                                                            faces_approximate_field[field_through_list[i]].bound_face_vertex[faces_approximate_field[field_through_list[i]].bound_face_id[j][1]],
+                                                            faces_approximate_field[field_through_list[i]].bound_face_vertex[faces_approximate_field[field_through_list[i]].bound_face_id[j][2]]};
                         K2::Triangle_3 tri_this(iGameVertex_to_Point_K2(tmp[0]),
                                                 iGameVertex_to_Point_K2(tmp[1]),
                                                 iGameVertex_to_Point_K2(tmp[2])
-                                                );
-                        if(j[0] >= 3 || j[1] >= 3 || j[2] >= 3) { // 去掉原表面
-                            if(triangle_through_grid(tri_this)) {
-
-                                bool flag = true;
-                                for(auto k : field_through_list) {
-                                    if(k!=i){
-                                        bool is_cutted = false;
-                                        for(vector<int> other_field_face : faces_approximate_field[k].bound_face_id){ //单场完全覆盖剪支
-                                            K2::Triangle_3 tri_other(iGameVertex_to_Point_K2(faces_approximate_field[k].bound_face_vertex[other_field_face[0]]),
-                                                                     iGameVertex_to_Point_K2(faces_approximate_field[k].bound_face_vertex[other_field_face[1]]),
-                                                                     iGameVertex_to_Point_K2(faces_approximate_field[k].bound_face_vertex[other_field_face[2]]));
-                                            CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3, K2::Triangle_3)>::type
-                                                    res = intersection(tri_this,tri_other);
-                                            if (res) {
-                                                if (const K2::Point_3 *p = boost::get<K2::Point_3>(&*res))continue;
-                                                else if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res)) {
-                                                    bool same_edge = false;
-                                                    for (K2::Segment_3 edge: {K2::Segment_3(tri_this.vertex(0),tri_this.vertex(1)),
-                                                                              K2::Segment_3(tri_this.vertex(1),tri_this.vertex(2)),
-                                                                              K2::Segment_3(tri_this.vertex(2),tri_this.vertex(0))}) {
-                                                        if (segment_in_line(edge, *s))
-                                                            same_edge = true;
-                                                    }
-                                                    if (!same_edge) {
-                                                        is_cutted = true;
-                                                    }
-                                                }
-                                                else if(const K2::Triangle_3 *t = boost::get<K2::Triangle_3>(&*res)) {
-                                                    int cnt=0;
-                                                    for(int l = 0 ;l<3;l++){
-                                                        for(int m = 0 ;m<3;m++){
-                                                            if(CGAL::squared_distance(tri_this.vertex(l),t->vertex(m)) == CGAL::Epeck::FT(0)){
-                                                                cnt++;
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                    if(cnt!=3)
-                                                        is_cutted = true;
-                                                }
-                                                else
-                                                    is_cutted = true;
-                                            }
-                                            if(is_cutted)
-                                                break;
-                                        }
-                                        if(!is_cutted){
-                                            if(faces_approximate_field[k].in_field(CGAL::centroid(tri_this)))
-                                                flag = false;
-                                        }
-                                    }
-                                }
-                                if(flag)
-                                    maybe_used_face.push_back(tmp);
-//                                if(flag)qq1++;
-//                                else qq2++;
+                        );
+                        if(faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3) { // 去掉原表面
+                            if (triangle_through_grid(tri_this)) {
+                                field_triangles.push_back(tri_this);
+                                face_belong_field_mp[tri_this.id()] = i;
+                                tmp_list.push_back(tmp);
                             }
                         }
                     }
                 }
+                Tree aabb_tree(field_triangles.begin(),field_triangles.end());
+                int tmp_list_id=0;
+               for(auto this_face : field_triangles){
+                    auto this_tmp = tmp_list[tmp_list_id];
+                   tmp_list_id++;
+                   std::list< Tree::Intersection_and_primitive_id<K2::Triangle_3>::Type> intersections;
+                   aabb_tree.all_intersections(this_face,std::back_inserter(intersections));
+                   int this_face_id = face_belong_field_mp[this_face.id()];
+                   vector<bool>cutting_field_id(field_through_list.size(),false);
+                   for(auto i : intersections){
+                       int this_field_belong_id = face_belong_field_mp[i.second->id()];
+                       if(this_field_belong_id != this_face_id && !cutting_field_id[this_field_belong_id]){
+                           if(const K2::Point_3* p = boost::get<K2::Point_3>(&(i.first))){
+
+                           }
+                           else if(const K2::Segment_3 * s = boost::get<K2::Segment_3>(&(i.first))){
+                               bool same_edge = false;
+                               for (K2::Segment_3 edge: {K2::Segment_3(this_face.vertex(0),this_face.vertex(1)),
+                                                         K2::Segment_3(this_face.vertex(1),this_face.vertex(2)),
+                                                         K2::Segment_3(this_face.vertex(2),this_face.vertex(0))}) {
+                                   if (segment_in_line(edge, *s))
+                                       same_edge = true;
+                               }
+                               if (!same_edge) {
+                                   cutting_field_id[this_field_belong_id] = true;
+                               }
+                           }
+                           else if(const K2::Triangle_3 *t = boost::get<K2::Triangle_3>(&(i.first))) {
+                               int cnt=0;
+                               for(int l = 0 ;l<3;l++){
+                                   for(int m = 0 ;m<3;m++){
+                                       if(CGAL::squared_distance(this_face.vertex(l),t->vertex(m)) == CGAL::Epeck::FT(0)){
+                                           cnt++;
+                                           break;
+                                       }
+                                   }
+                               }
+                               if(cnt!=3)
+                                   cutting_field_id[this_field_belong_id] = true;
+                           }
+                           else{
+                               cutting_field_id[this_field_belong_id] = true;
+                           }
+                       }
+                   }
+                   bool useless = false;
+                   for(int i = 0; i< cutting_field_id.size();i++){
+                       if(!cutting_field_id[i]){
+                           if(faces_approximate_field[field_through_list[i]].in_field(CGAL::centroid(this_face)))
+                               useless =true;
+                       }
+                       if(useless)
+                           break;
+                   }
+                   if(!useless)
+                       maybe_used_face.push_back(this_tmp);
+
+               }
 
 
              //   continue;
