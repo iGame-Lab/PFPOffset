@@ -1640,7 +1640,6 @@ int main(int argc, char* argv[]) {
                    // cout <<"************" << endl;
                     res = delete_same_K2_point_in_vector(res);
 
-
                     MeshKernel::iGameVertex center(0,0,0);
                     vector<K2::Point_3 > triangle_vertex_list;
                     for(auto j: res){
@@ -1675,12 +1674,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
-
-
-
-
-
-                vector<K2::Triangle_3 > generated_face_list;
+             vector<K2::Triangle_3 > generated_face_list;
 
                 for(int i=0;i<maybe_used_face.size();i++) { // 处理单片面的切割
 
