@@ -1399,7 +1399,15 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
-                CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside_frame(frame_poly);
+                //CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside_frame(frame_poly);
+
+                std::function<bool(K2::Point_3)> vertex_in_frame = [&](K2::Point_3 v){
+                    K2::Point_3 sm = iGameVertex_to_Point_K2(small);
+                    K2::Point_3 bi = iGameVertex_to_Point_K2(big);
+                    return sm.x() <= v.x() && v.x() <= bi.x() &&
+                            sm.y() <= v.y() && v.y() <= bi.y() &&
+                            sm.z() <= v.z() && v.z() <= bi.z();
+                };
 
                // if(!(each_grid->first.x == 17 && each_grid->first.y == 27 && each_grid->first.z == 10  ))continue;
                // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
@@ -1417,7 +1425,7 @@ int main(int argc, char* argv[]) {
                     }
                     if(!useful)
                     {
-                        if(inside_frame(faces_approximate_field[i].center) == CGAL::ON_BOUNDED_SIDE){
+                        if(vertex_in_frame(faces_approximate_field[i].center)){
                             useful = true;
                         }
                     }
@@ -1429,7 +1437,7 @@ int main(int argc, char* argv[]) {
 
 
                 function<bool(K2::Triangle_3)>  triangle_through_grid = [&](K2::Triangle_3 tri) {
-                    if(inside_frame(centroid(tri))){
+                    if(vertex_in_frame(centroid(tri))){
                         return true;
                     }
                     CGAL::Polyhedron_3<K2> this_face;
@@ -1524,9 +1532,9 @@ int main(int argc, char* argv[]) {
                     vector<K2::Point_3 > ret;
                     set<K2::Point_3> se;
                     std::list< Tree::Intersection_and_primitive_id<K2::Triangle_3>::Type> intersections;
-                    aabb_tree.all_intersections(this_face,std::back_inserter(intersections));
+                    frame_aabb_tree.all_intersections(this_face,std::back_inserter(intersections));
                     for(int i=0;i<3;i++){
-                        if(inside_frame(this_face.vertex(i))){
+                        if(vertex_in_frame(this_face.vertex(i))){
                             se.insert(this_face.vertex(i));
                         }
                     }
