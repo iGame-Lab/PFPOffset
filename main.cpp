@@ -1046,6 +1046,9 @@ int main(int argc, char* argv[]) {
     FILE *file13 = fopen( (input_filename + "_13.off").c_str(), "w");
 
 
+    FILE *file4 = fopen( (input_filename + "_4.obj").c_str(), "w");
+    FILE *file5 = fopen( (input_filename + "_5.obj").c_str(), "w");
+    FILE *file6 = fopen( (input_filename + "_6.obj").c_str(), "w");
     // freopen("../debugoutput.txt","w",stdout);
     default_move = 0.01;
     grid_len = 2.5;
@@ -1202,7 +1205,7 @@ int main(int argc, char* argv[]) {
     };
     int fsize = mesh->FaceSize();
 
-    MeshKernel::iGameVertex debug_v(-0.074512,-0.682673,0.489142);
+    MeshKernel::iGameVertex debug_v(-1.926899,-23.264498,-4.500436);
     grid debug_g =  vertex_to_grid(debug_v);
 
     cout <<"v to g :" <<debug_g.x <<" "<< debug_g.y <<" "<<debug_g.z << endl;
@@ -1324,7 +1327,7 @@ int main(int argc, char* argv[]) {
 
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
        //if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
-      //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11 ))continue;
+        if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1 ))continue;
         auto small  = getGridVertex(each_grid->first,0);
         auto big  = getGridVertex(each_grid->first,7);
         static int f3_id = 1;
@@ -1355,7 +1358,7 @@ int main(int argc, char* argv[]) {
    // atomic<int>maxx_face_size(0);
     //atomic<int> qq1(0);
    // atomic<int> qq2(0);
-   // std::mutex mu;
+    std::mutex mu;
     std::vector<std::shared_ptr<std::thread> > each_frame_thread(thread_num);
     vector<K2::Point_3> final_gen_vertex;
     vector<vector<size_t> > final_gen_face;
@@ -1411,7 +1414,7 @@ int main(int argc, char* argv[]) {
 
                // if(!(each_grid->first.x == 17 && each_grid->first.y == 27 && each_grid->first.z == 10  ))continue;
                // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
-              //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11  ))continue;
+               // if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1  ))continue;
 
                 vector<K2::Triangle_3 > maybe_used_face;
                 vector<vector<K2::Segment_3> > maybe_used_face_seg_cutting;
@@ -1459,7 +1462,7 @@ int main(int argc, char* argv[]) {
                                                 iGameVertex_to_Point_K2(tmp[1]),
                                                 iGameVertex_to_Point_K2(tmp[2])
                         );
-                        if(faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3) { // 去掉原表面
+                        if(faces_approximate_field[field_through_list[i]].bound_face_id[j][0] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][1] >= 3 || faces_approximate_field[field_through_list[i]].bound_face_id[j][2] >= 3) { // 去掉原表面
                             if (triangle_through_grid(tri_this)) {
                                 field_triangles.push_back(tri_this);
                                 face_belong_field_mp[tri_this.id()] = i;
@@ -1467,6 +1470,22 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 }
+//                int f5id = 1;
+//                for(auto this_face : field_triangles){
+//                    fprintf(file5, "v %lf %lf %lf \n",CGAL::to_double(this_face.vertex(0).x()),
+//                            CGAL::to_double(this_face.vertex(0).y()),
+//                            CGAL::to_double(this_face.vertex(0).z()));
+//                    fprintf(file5, "v %lf %lf %lf \n",CGAL::to_double(this_face.vertex(1).x()),
+//                            CGAL::to_double(this_face.vertex(1).y()),
+//                            CGAL::to_double(this_face.vertex(1).z()));
+//                    fprintf(file5, "v %lf %lf %lf \n",CGAL::to_double(this_face.vertex(2).x()),
+//                            CGAL::to_double(this_face.vertex(2).y()),
+//                            CGAL::to_double(this_face.vertex(2).z()));
+//                    fprintf(file5,"f %d %d %d\n",f5id,f5id+1,f5id+2);
+//                    f5id+=3;
+//                }
+
+
                 Tree aabb_tree(field_triangles.begin(),field_triangles.end());
                 for(auto this_face : field_triangles){
                    std::list< Tree::Intersection_and_primitive_id<K2::Triangle_3>::Type> intersections;
@@ -1675,7 +1694,22 @@ int main(int argc, char* argv[]) {
                                 //cout <<"GGST" << endl;
                             }
                         }
+                       auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
+                       auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
+                       auto vvv2 = Point_K2_to_iGameVertex(tri.vertex(2));
 
+                       auto ddd = (vvv1 - vvv0) % (vvv2- vvv0);
+                       //if(ddd*direct <0)
+                       // swap(vvv1,vvv2);
+
+
+
+//                       std::unique_lock<std::mutex>lock(mu);
+//                       fprintf(file10,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
+//                       fprintf(file10,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
+//                       fprintf(file10,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
+//                       fprintf(file10,"f %d %d %d\n",vid,vid+1,vid+2);
+//                       vid+=3;
 
                         if(flag) {
                             continue;
