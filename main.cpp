@@ -1414,6 +1414,7 @@ int main(int argc, char* argv[]) {
               //  if(!(each_grid->first.x == 7 && each_grid->first.y == 1 && each_grid->first.z == 11  ))continue;
 
                 vector<K2::Triangle_3 > maybe_used_face;
+                vector<vector<K2::Segment_3> > maybe_used_face_seg_cutting;
 
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
                 vector<int> field_through_list;
@@ -1449,7 +1450,6 @@ int main(int argc, char* argv[]) {
                 std::unordered_map<std::size_t,int> face_belong_field_mp;
 
                 std::list<K2::Triangle_3> field_triangles;
-                std::vector<vector<MeshKernel::iGameVertex> > tmp_list;
                 for (int i=0;i< field_through_list.size();i++) {
                     for(int j=0;j<faces_approximate_field[field_through_list[i]].bound_face_id.size();j++){
                         vector<MeshKernel::iGameVertex> tmp{faces_approximate_field[field_through_list[i]].bound_face_vertex[faces_approximate_field[field_through_list[i]].bound_face_id[j][0]],
@@ -1463,7 +1463,6 @@ int main(int argc, char* argv[]) {
                             if (triangle_through_grid(tri_this)) {
                                 field_triangles.push_back(tri_this);
                                 face_belong_field_mp[tri_this.id()] = i;
-                                tmp_list.push_back(tmp);
                             }
                         }
                     }
@@ -1474,9 +1473,10 @@ int main(int argc, char* argv[]) {
                    aabb_tree.all_intersections(this_face,std::back_inserter(intersections));
                    int this_face_id = face_belong_field_mp[this_face.id()];
                    vector<bool>cutting_field_id(field_through_list.size(),false);
+                   vector<K2::Segment_3> segment_cutting;
                    for(auto i : intersections){
                        int this_field_belong_id = face_belong_field_mp[i.second->id()];
-                       if(this_field_belong_id != this_face_id && !cutting_field_id[this_field_belong_id]){
+                       if(this_field_belong_id != this_face_id /*&& !cutting_field_id[this_field_belong_id]*/){
                            if(const K2::Point_3* p = boost::get<K2::Point_3>(&(i.first))){
 
                            }
@@ -1490,6 +1490,7 @@ int main(int argc, char* argv[]) {
                                }
                                if (!same_edge) {
                                    cutting_field_id[this_field_belong_id] = true;
+                                   segment_cutting.push_back(*s);
                                }
                            }
                            else if(const K2::Triangle_3 *t = boost::get<K2::Triangle_3>(&(i.first))) {
@@ -1519,8 +1520,10 @@ int main(int argc, char* argv[]) {
                        if(useless)
                            break;
                    }
-                   if(!useless)
+                   if(!useless) {
                        maybe_used_face.push_back(this_face);
+                       maybe_used_face_seg_cutting.push_back(segment_cutting);
+                   }
                }
 
 
@@ -1586,6 +1589,17 @@ int main(int argc, char* argv[]) {
 
                 }
 
+
+                // 究极优化4 核心处搞搞搞！？！！！？！？！
+                //第四关
+//                for(int i=0;i<maybe_used_face.size();i++) {
+//
+//                }
+//
+//
+//                continue;
+
+
                 vector<K2::Triangle_3 > generated_face_list;
 
                 for(int i=0;i<maybe_used_face.size();i++) { // 处理单片面的切割
@@ -1602,39 +1616,13 @@ int main(int argc, char* argv[]) {
                                           (maybe_used_face[i][1]),
                                           (maybe_used_face[i][2]));
                     //下面这个for 计算出所有的交线  直接用原来的面去切，不要用inner part 切 ，加快效率
-                    for(int j=0;j<maybe_used_face.size();j++) {
-                        if(i==j)continue;
-                        K2::Triangle_3  tri_j((maybe_used_face[j][0]),
-                                              (maybe_used_face[j][1]),
-                                              (maybe_used_face[j][2]));
-                        CGAL::cpp11::result_of<K2::Intersect_3(K2::Triangle_3, K2::Triangle_3)>::type
-                                res = intersection(tri_i,tri_j);
-                        if (res) {
-                            if (const K2::Segment_3 *s = boost::get<K2::Segment_3>(&*res)) {
-                                bool same_edge = false;
-                                for(K2::Segment_3 edge : {e0,e1,e2}){
-                                    if(segment_in_line(edge,*s))
-                                        same_edge = true;
-                                }
-                                if(!same_edge){
-                                    cutting_segment.emplace_back(*s,tri_j);
-                                }
-                                //判断交线是不是边6
-
-                            }//面交再说！；；；；
-                        }
-
-                    }
-                    if(face_inner_grid_polygon[i].size() <3){
-                        continue;
-                    }
 
 
                    // now_tri_list.push_back(field_move_K2_triangle[possible_face_list[i]]);
 
                     vector<K2::Segment_3>cs;
-                    for(auto j : cutting_segment){
-                        cs.push_back(j.first);
+                    for(auto j : maybe_used_face_seg_cutting[i]){
+                        cs.push_back(j);
                     }
 
                     //下面这块用德劳内代替
