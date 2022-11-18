@@ -1417,6 +1417,7 @@ int main(int argc, char* argv[]) {
                // if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1  ))continue;
 
                 vector<K2::Triangle_3 > maybe_used_face;
+                vector<int> maybe_used_face_belong_field;
                 vector<vector<K2::Segment_3> > maybe_used_face_seg_cutting;
 
                 std::vector<MeshKernel::iGameFaceHandle> debug_tet_list_belong_face;
@@ -1451,8 +1452,10 @@ int main(int argc, char* argv[]) {
                 };
 
                 std::unordered_map<std::size_t,int> face_belong_field_mp;
-
                 std::list<K2::Triangle_3> field_triangles;
+
+                std::unordered_map<std::size_t,int> face_belong_field_mp_final_round;
+                std::list<K2::Triangle_3> field_triangles_final_round;
                 for (int i=0;i< field_through_list.size();i++) {
                     for(int j=0;j<faces_approximate_field[field_through_list[i]].bound_face_id.size();j++){
                         vector<MeshKernel::iGameVertex> tmp{faces_approximate_field[field_through_list[i]].bound_face_vertex[faces_approximate_field[field_through_list[i]].bound_face_id[j][0]],
@@ -1468,6 +1471,8 @@ int main(int argc, char* argv[]) {
                                 face_belong_field_mp[tri_this.id()] = i;
                             }
                         }
+                        field_triangles_final_round.push_back(tri_this);
+                        face_belong_field_mp_final_round[tri_this.id()] = i;
                     }
                 }
 //                int f5id = 1;
@@ -1541,6 +1546,7 @@ int main(int argc, char* argv[]) {
                    }
                    if(!useless) {
                        maybe_used_face.push_back(this_face);
+                       maybe_used_face_belong_field.push_back(this_face_id);
                        maybe_used_face_seg_cutting.push_back(segment_cutting);
                    }
                }
@@ -1653,7 +1659,7 @@ int main(int argc, char* argv[]) {
                    // cout << "cs" << cs.size() << endl;
                     vector<vector<K2::Point_3> > cdt_res = CGAL_CDT(face_inner_grid_polygon[i],cs,tri_i);
 
-                    static int vid = 1;
+                    //static int vid = 1;
 
 
 //FIXME: 在这里启用cdt
@@ -1671,8 +1677,7 @@ int main(int argc, char* argv[]) {
                     }
 
                     //*********************
-
-
+                    int belong_field_id = maybe_used_face_belong_field[i];
 
                    for(auto tri: now_tri_list) {
                         // todo : open this code this code is check weather is need generate
@@ -1682,7 +1687,42 @@ int main(int argc, char* argv[]) {
                        // cout <<"start check "<< endl;
 
                        // bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
-                        bool flag = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
+                       // bool flag = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
+                        Tree aabb_tree_final_round(field_triangles_final_round.begin(),field_triangles_final_round.end());
+
+                        //使用aabbtree 代替
+
+                       K2::Ray_3 ray(CGAL::centroid(tri),tri.supporting_plane().orthogonal_vector());
+                       std::list< Tree::Intersection_and_primitive_id<K2::Ray_3>::Type> intersections;
+                       aabb_tree_final_round.all_intersections(ray,std::back_inserter(intersections));
+                       //vector<bool>cutting_field_id(field_through_list.size(),false);
+                       vector<set<K2::Point_3 > > intersection_v(field_through_list.size());
+                       set<int>is_special;
+                        for(auto item : intersections) {
+                            if(const K2::Point_3* p = boost::get<K2::Point_3>(&(item.first))){
+                                //se.insert(*p);
+                                int this_field_belong_id = face_belong_field_mp_final_round[item.second->id()];
+                                if (belong_field_id != this_field_belong_id){
+                                    if(intersection_v[this_field_belong_id].count(*p)){
+                                        is_special.insert(this_field_belong_id);
+                                    }
+                                    intersection_v[this_field_belong_id].insert(*p);
+                                }
+                            }
+                        }
+                       bool flag = false;
+                       for(int j=0;j<field_through_list.size();j++){
+                            if(!is_special.count(j)){
+                                if(intersection_v[j].size()%2)
+                                    flag = true;
+                            }
+                            else{
+                                if(faces_approximate_field[field_through_list[j]].in_field(CGAL::centroid(tri)))
+                                    flag = true;
+                            }
+                        }
+
+                        //bool flag = (std::find(cutting_field_id.begin(), cutting_field_id.end(),true)!= cutting_field_id.end());
 
                         // 这个地方是不是可以去掉底相交呢？？？？？
 
@@ -1736,6 +1776,8 @@ int main(int argc, char* argv[]) {
 
                     }
                 }
+
+
 
 //                vector<MeshKernel::iGameVertex >gen_vertex;
 //                vector<vector<int> >gen_face;
