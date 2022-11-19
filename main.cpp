@@ -732,6 +732,14 @@ struct ApproximateField {
         return false;
     }
 
+    bool in_or_on_field(K2::Point_3 v) {
+        //CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> inside(*poly);
+        auto side = (*inside_ptr)(v);
+        if (side== CGAL::ON_BOUNDED_SIDE || side == CGAL::ON_BOUNDARY)
+            return true;
+        return false;
+    }
+
 
     vector<K2::Point_3> get_near_v(K2::Point_3 v){
         vector<K2::Point_3> ret;
@@ -769,6 +777,7 @@ bool check_in_approximate_field_list(const vector<int> &nearby_field_id_list ,K2
         for(auto j : points)
             check_point_list.push_back(j);
     }
+    //cout << "check_point_list size : "<< check_point_list.size() << endl;
     for(auto i : nearby_field_id_list) {
         for(auto j : check_point_list){
             if(faces_approximate_field[i].in_field(j)) {
@@ -1205,10 +1214,11 @@ int main(int argc, char* argv[]) {
     };
     int fsize = mesh->FaceSize();
 
-    MeshKernel::iGameVertex debug_v(-1.926899,-23.264498,-4.500436);
+    MeshKernel::iGameVertex debug_v( -6.249046,-23.544081,-5.292707);
     grid debug_g =  vertex_to_grid(debug_v);
 
     cout <<"v to g :" <<debug_g.x <<" "<< debug_g.y <<" "<<debug_g.z << endl;
+    //return 0;
 
     cout <<"bfs end \n" << endl;
     std::mutex bfs_mutex;
@@ -1327,7 +1337,8 @@ int main(int argc, char* argv[]) {
 
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
        //if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
-        if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1 ))continue;
+        //if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1 ))continue;
+        if(!(each_grid->first.x == 19 && each_grid->first.y == 18 && each_grid->first.z == 1 ))continue;
         auto small  = getGridVertex(each_grid->first,0);
         auto big  = getGridVertex(each_grid->first,7);
         static int f3_id = 1;
@@ -1415,6 +1426,7 @@ int main(int argc, char* argv[]) {
                // if(!(each_grid->first.x == 17 && each_grid->first.y == 27 && each_grid->first.z == 10  ))continue;
                // if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue; // 15 22 21 // 26 31 7
                // if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1  ))continue;
+              //  if(!(each_grid->first.x == 19 && each_grid->first.y == 18 && each_grid->first.z == 1 ))continue;
 
                 vector<K2::Triangle_3 > maybe_used_face;
                 vector<int> maybe_used_face_belong_field;
@@ -1687,40 +1699,198 @@ int main(int argc, char* argv[]) {
                        // cout <<"start check "<< endl;
 
                        // bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
-                       // bool flag = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
+                        bool flag2 = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
+                        bool flag = false;
                         Tree aabb_tree_final_round(field_triangles_final_round.begin(),field_triangles_final_round.end());
 
                         //使用aabbtree 代替
-
-                       K2::Ray_3 ray(CGAL::centroid(tri),tri.supporting_plane().orthogonal_vector());
+                       K2::Point_3 this_center = CGAL::centroid(tri);
+                       K2::Ray_3 ray(this_center,tri.supporting_plane().orthogonal_vector());
                        std::list< Tree::Intersection_and_primitive_id<K2::Ray_3>::Type> intersections;
                        aabb_tree_final_round.all_intersections(ray,std::back_inserter(intersections));
                        //vector<bool>cutting_field_id(field_through_list.size(),false);
                        vector<set<K2::Point_3 > > intersection_v(field_through_list.size());
                        set<int>is_special;
-                        for(auto item : intersections) {
+                       set<int> positive_side;
+                       for(auto item : intersections) {
                             if(const K2::Point_3* p = boost::get<K2::Point_3>(&(item.first))){
                                 //se.insert(*p);
+                                //cout <<"*********"<<endl;
                                 int this_field_belong_id = face_belong_field_mp_final_round[item.second->id()];
                                 if (belong_field_id != this_field_belong_id){
+                                    if( *p == this_center){
+                                        //flag = true;
+                                        positive_side.insert(this_field_belong_id);
+                                        //cout <<"f1" << endl;
+
+                                    }
                                     if(intersection_v[this_field_belong_id].count(*p)){
-                                        is_special.insert(this_field_belong_id);
+                                        if(!is_special.count(this_field_belong_id)){
+                                            if(faces_approximate_field[field_through_list[this_field_belong_id]].in_or_on_field(this_center)) {
+                                                flag = true;
+                                                //cout <<"f2" << endl;
+                                                break;
+                                            }
+                                        }
+                                        else
+                                            is_special.insert(this_field_belong_id);
                                     }
                                     intersection_v[this_field_belong_id].insert(*p);
                                 }
                             }
                         }
-                       bool flag = false;
+
+
+
                        for(int j=0;j<field_through_list.size();j++){
-                            if(!is_special.count(j)){
-                                if(intersection_v[j].size()%2)
+                            if(j==belong_field_id)continue;
+                            if(!is_special.count(j) && positive_side.count(j)==0){
+                                if(intersection_v[j].size()%2) {
                                     flag = true;
+                                    //cout <<"f3" << endl;
+                                    break;
+                                }
                             }
-                            else{
-                                if(faces_approximate_field[field_through_list[j]].in_field(CGAL::centroid(tri)))
-                                    flag = true;
-                            }
-                        }
+                       }
+                       bool flag_positive = false;
+                       bool flag_negative = false;
+                       for(int j=0;j<field_through_list.size();j++){
+                           if(positive_side.count(j) && intersection_v[j].size()%2==0){
+                               flag_positive = true;
+                           }
+                       }
+                       if(!flag && flag_positive){
+                           K2::Ray_3 ray_r(this_center,tri.supporting_plane().orthogonal_vector()*(-1));
+                           std::list< Tree::Intersection_and_primitive_id<K2::Ray_3>::Type> intersections_r;
+                           aabb_tree_final_round.all_intersections(ray,std::back_inserter(intersections_r));
+                           //vector<bool>cutting_field_id(field_through_list.size(),false);
+                           vector<set<K2::Point_3 > > intersection_v_r(field_through_list.size());
+                           set<int>is_special_r;
+                           set<int> negative_side;
+                           for(auto item : intersections_r) {
+                               if(const K2::Point_3* p = boost::get<K2::Point_3>(&(item.first))){
+                                   int this_field_belong_id = face_belong_field_mp_final_round[item.second->id()];
+                                   if (belong_field_id != this_field_belong_id){
+                                       if( *p == this_center){
+                                           negative_side.insert(this_field_belong_id);
+                                       }
+                                       if(intersection_v_r[this_field_belong_id].count(*p)){
+                                           if(!is_special_r.count(this_field_belong_id)){
+                                               if(faces_approximate_field[field_through_list[this_field_belong_id]].in_or_on_field(this_center)) {
+                                                   flag = true;
+                                                   break;
+                                               }
+                                           }
+                                           else
+                                               is_special_r.insert(this_field_belong_id);
+                                       }
+                                       intersection_v_r[this_field_belong_id].insert(*p);
+                                   }
+                               }
+                           }
+                           for(int j=0;j<field_through_list.size();j++){
+                               if(negative_side.count(j) && intersection_v_r[j].size()%2==0){
+                                   flag_negative = true;
+                               }
+                           }
+                       }
+                       if(flag_positive && flag_negative)
+                           flag = true;
+
+
+
+//
+//                       bool flag2 = false;
+//                       for(int j=0;j<field_through_list.size();j++) {
+//                           if (j == belong_field_id)continue;
+//                           if(faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri)) ) {
+//                               flag2 = true;
+////                               cout <<faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))
+////                               <<" vs "<< flag<<endl;
+////                               for(auto k :intersection_v[j] ){
+////                                   cout << "v : " <<CGAL::to_double(k.x()) <<" "<< CGAL::to_double(k.y())<<" "<< CGAL::to_double(k.z()) << endl;
+////                               }
+////                               int vvd = 1;
+////                               for(auto kk : faces_approximate_field[field_through_list[j]].bound_face_id){
+////                                   auto i0 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[0]];
+////                                   auto i1 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[1]];
+////                                   auto i2 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[2]];
+////                                   printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
+////                                   printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
+////                                   printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
+////                                   printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
+////                                   vvd+=3;
+////                               }
+////                               auto cc = CGAL::centroid(tri);
+////                               printf("v %lf %lf %lf\n",CGAL::to_double(cc.x()),
+////                                      CGAL::to_double(cc.y()),
+////                                      CGAL::to_double(cc.z()));
+//
+//                           }
+//                           //cout << faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri)) <<" vs "<< intersection_v[j].size() << endl;
+//                       }
+
+
+//flag 12 debug
+//                       if(flag != flag2 ){
+//                           cout << flag <<" {1:2} "<< flag2 << endl;
+//                           cout <<" GG" <<std::endl;
+//                           int vvd = 1;
+//                           cout <<"v " <<CGAL::to_double(tri.vertex(0).x()) <<" "<< CGAL::to_double(tri.vertex(0).y())<<" "<<CGAL::to_double(tri.vertex(0).z()) <<std::endl;
+//                           cout << "v " <<CGAL::to_double(tri.vertex(1).x()) <<" "<< CGAL::to_double(tri.vertex(1).y())<<" "<<CGAL::to_double(tri.vertex(1).z()) <<std::endl;
+//                           cout << "v " <<CGAL::to_double(tri.vertex(2).x()) <<" "<< CGAL::to_double(tri.vertex(2).y())<<" "<<CGAL::to_double(tri.vertex(2).z()) <<std::endl;
+//                           cout << "f 1 2 3"<< endl;
+//
+//                           cout <<"---" << endl;
+//                           for(auto kk : faces_approximate_field[field_through_list[belong_field_id]].bound_face_id){
+//                               auto i0 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[0]];
+//                               auto i1 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[1]];
+//                               auto i2 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[2]];
+//                               printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
+//                               printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
+//                               printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
+//                               printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
+//                               vvd+=3;
+//                           }
+//                           for(int j=0;j<field_through_list.size();j++) {
+//                               if (j == belong_field_id)continue;
+//                               if (faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))) {
+//                                    cout <<"??" <<j << " "<< belong_field_id<< endl;
+//                                   vvd = 1;
+//                                   for(auto kk : faces_approximate_field[field_through_list[j]].bound_face_id){
+//                                       auto i0 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[0]];
+//                                       auto i1 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[1]];
+//                                       auto i2 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[2]];
+//                                       printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
+//                                       printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
+//                                       printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
+//                                       printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
+//                                       vvd+=3;
+//                                   }
+//
+//
+//                               }
+//                           }
+//
+//
+//                           exit(0);
+//                       }
+
+
+
+
+//                       if(flag != flag2)
+//                       {
+//                           for(int j=0;j<field_through_list.size();j++){
+//                               if(j==belong_field_id)continue;
+//                               cout <<"inj "<< j <<" "<<faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))<<endl;
+//                           }
+//                           cout << flag <<" "<< flag2 << endl;
+//                           cout << "v "<< CGAL::to_double(CGAL::centroid(tri).x()) <<" "<< CGAL::to_double(CGAL::centroid(tri).y())
+//                           <<" "<<CGAL::to_double(CGAL::centroid(tri).z()) << endl;
+//                           exit(2);
+//                       }
+
 
                         //bool flag = (std::find(cutting_field_id.begin(), cutting_field_id.end(),true)!= cutting_field_id.end());
 
