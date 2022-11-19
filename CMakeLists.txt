@@ -17,7 +17,17 @@ find_package(OsqpEigen REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
-
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+    message(STATUS "Release版本")
+    set(BuildType "Release")
+    set(CMAKE_C_FLAGS "$ENV{CFLAGS} -DNODEBUG -O3 -Wall")
+    set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -DNODEBUG -O3 -Wall")
+else()
+    message(STATUS "Debug版本")
+    set(BuildType "Debug")
+    set(CMAKE_C_FLAGS "$ENV{CFLAGS} -O0 -g -Wall")
+    set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O0 -g -Wall")
+endif()
 
 file (GLOB CppFile
         MeshKernel/*

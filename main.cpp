@@ -1699,7 +1699,7 @@ int main(int argc, char* argv[]) {
                        // cout <<"start check "<< endl;
 
                        // bool flag = check_in_approximate_field_list(maybe_used_face_field ,CGAL::centroid(tri));;
-                        bool flag2 = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
+                      //  bool flag2 = check_in_approximate_field_list(field_through_list ,CGAL::centroid(tri));
                         bool flag = false;
                         Tree aabb_tree_final_round(field_triangles_final_round.begin(),field_triangles_final_round.end());
 
@@ -1797,102 +1797,6 @@ int main(int argc, char* argv[]) {
                        if(flag_positive && flag_negative)
                            flag = true;
 
-
-
-//
-//                       bool flag2 = false;
-//                       for(int j=0;j<field_through_list.size();j++) {
-//                           if (j == belong_field_id)continue;
-//                           if(faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri)) ) {
-//                               flag2 = true;
-////                               cout <<faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))
-////                               <<" vs "<< flag<<endl;
-////                               for(auto k :intersection_v[j] ){
-////                                   cout << "v : " <<CGAL::to_double(k.x()) <<" "<< CGAL::to_double(k.y())<<" "<< CGAL::to_double(k.z()) << endl;
-////                               }
-////                               int vvd = 1;
-////                               for(auto kk : faces_approximate_field[field_through_list[j]].bound_face_id){
-////                                   auto i0 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[0]];
-////                                   auto i1 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[1]];
-////                                   auto i2 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[2]];
-////                                   printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
-////                                   printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
-////                                   printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
-////                                   printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
-////                                   vvd+=3;
-////                               }
-////                               auto cc = CGAL::centroid(tri);
-////                               printf("v %lf %lf %lf\n",CGAL::to_double(cc.x()),
-////                                      CGAL::to_double(cc.y()),
-////                                      CGAL::to_double(cc.z()));
-//
-//                           }
-//                           //cout << faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri)) <<" vs "<< intersection_v[j].size() << endl;
-//                       }
-
-
-//flag 12 debug
-//                       if(flag != flag2 ){
-//                           cout << flag <<" {1:2} "<< flag2 << endl;
-//                           cout <<" GG" <<std::endl;
-//                           int vvd = 1;
-//                           cout <<"v " <<CGAL::to_double(tri.vertex(0).x()) <<" "<< CGAL::to_double(tri.vertex(0).y())<<" "<<CGAL::to_double(tri.vertex(0).z()) <<std::endl;
-//                           cout << "v " <<CGAL::to_double(tri.vertex(1).x()) <<" "<< CGAL::to_double(tri.vertex(1).y())<<" "<<CGAL::to_double(tri.vertex(1).z()) <<std::endl;
-//                           cout << "v " <<CGAL::to_double(tri.vertex(2).x()) <<" "<< CGAL::to_double(tri.vertex(2).y())<<" "<<CGAL::to_double(tri.vertex(2).z()) <<std::endl;
-//                           cout << "f 1 2 3"<< endl;
-//
-//                           cout <<"---" << endl;
-//                           for(auto kk : faces_approximate_field[field_through_list[belong_field_id]].bound_face_id){
-//                               auto i0 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[0]];
-//                               auto i1 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[1]];
-//                               auto i2 = faces_approximate_field[field_through_list[belong_field_id]].bound_face_vertex[kk[2]];
-//                               printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
-//                               printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
-//                               printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
-//                               printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
-//                               vvd+=3;
-//                           }
-//                           for(int j=0;j<field_through_list.size();j++) {
-//                               if (j == belong_field_id)continue;
-//                               if (faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))) {
-//                                    cout <<"??" <<j << " "<< belong_field_id<< endl;
-//                                   vvd = 1;
-//                                   for(auto kk : faces_approximate_field[field_through_list[j]].bound_face_id){
-//                                       auto i0 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[0]];
-//                                       auto i1 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[1]];
-//                                       auto i2 = faces_approximate_field[field_through_list[j]].bound_face_vertex[kk[2]];
-//                                       printf("v %lf %lf %lf\n",i0.x(),i0.y(),i0.z());
-//                                       printf("v %lf %lf %lf\n",i1.x(),i1.y(),i1.z());
-//                                       printf("v %lf %lf %lf\n",i2.x(),i2.y(),i2.z());
-//                                       printf("f %d %d %d\n",vvd,vvd+1,vvd+2);
-//                                       vvd+=3;
-//                                   }
-//
-//
-//                               }
-//                           }
-//
-//
-//                           exit(0);
-//                       }
-
-
-
-
-//                       if(flag != flag2)
-//                       {
-//                           for(int j=0;j<field_through_list.size();j++){
-//                               if(j==belong_field_id)continue;
-//                               cout <<"inj "<< j <<" "<<faces_approximate_field[field_through_list[j]].in_or_on_field(CGAL::centroid(tri))<<endl;
-//                           }
-//                           cout << flag <<" "<< flag2 << endl;
-//                           cout << "v "<< CGAL::to_double(CGAL::centroid(tri).x()) <<" "<< CGAL::to_double(CGAL::centroid(tri).y())
-//                           <<" "<<CGAL::to_double(CGAL::centroid(tri).z()) << endl;
-//                           exit(2);
-//                       }
-
-
-                        //bool flag = (std::find(cutting_field_id.begin(), cutting_field_id.end(),true)!= cutting_field_id.end());
 
                         // 这个地方是不是可以去掉底相交呢？？？？？
 
