@@ -46,7 +46,7 @@ shared_ptr <MeshKernel::SurfaceMesh> mesh;
 shared_ptr<CGALPolygon>cgal_polygon;
 
 double default_move = 0.1;
-int thread_num = 20;
+int thread_num = 12;
 
 MeshKernel::SurfaceMesh ReadObjFile(const std::string &_InputFile) {
     //std::ifstream inputfile(_InputFile, std::ios::in);
@@ -740,22 +740,6 @@ struct ApproximateField {
         return false;
     }
 
-
-    vector<K2::Point_3> get_near_v(K2::Point_3 v){
-        vector<K2::Point_3> ret;
-        for(auto i : bound_face_id){
-
-            K2::Triangle_3 tri(iGameVertex_to_Point_K2(bound_face_vertex[i[0]]),
-                               iGameVertex_to_Point_K2(bound_face_vertex[i[1]]),
-                               iGameVertex_to_Point_K2(bound_face_vertex[i[2]]));
-            if(CGAL::squared_distance(tri,v) == CGAL::Epeck::FT(0)) {
-                K2::Vector_3 vec = (v - center) * CGAL::Epeck::FT(1+myeps/1000);
-                K2::Point_3 new_p = center + vec;
-                ret.push_back(new_p);
-            }
-        }
-        return ret;
-    }
 public:
     CGAL::Polyhedron_3<K2> * poly;
 
@@ -764,33 +748,6 @@ public:
 
 };
 vector<ApproximateField>faces_approximate_field;
-
-
-//todo : 这里可以改成aabbtree 版本 6 tet 升级为一颗aabbtree ！！！！！！！！！！1  重大优化
-bool check_in_approximate_field_list(const vector<int> &nearby_field_id_list ,K2::Point_3 v) {
-    // 检查接近
-    //vector<ApproximateField>nearest_face;
-    vector<K2::Point_3> check_point_list;
-    check_point_list.push_back(v);
-    for(auto i : nearby_field_id_list) {
-        vector<K2::Point_3> points = faces_approximate_field[i].get_near_v(v);
-        for(auto j : points)
-            check_point_list.push_back(j);
-    }
-    //cout << "check_point_list size : "<< check_point_list.size() << endl;
-    for(auto i : nearby_field_id_list) {
-        for(auto j : check_point_list){
-            if(faces_approximate_field[i].in_field(j)) {
-                {
-                    return true;
-                }
-            }
-        }
-    }
-
-    return false;
-}
-
 
 
 vector<MeshKernel::iGameVertex> min_move_g;
@@ -915,21 +872,6 @@ void mix(int T){
 }
 
 
-
-
-bool vertex_in_tiny_grid(const MeshKernel::iGameVertex& small,const MeshKernel::iGameVertex& big,
-                         const MeshKernel::iGameVertex& v) {
-    return small.x() <= v.x()+myeps  && v.x()-myeps <= big.x() &&
-    small.y() <= v.y()+myeps  && v.y()-myeps <= big.y() &&
-    small.z() <= v.z()+myeps  && v.z()-myeps <= big.z(); // 先不管
-}
-
-K2::Point_3 point_k_to_k2(K::Point_3 p){
-    return K2::Point_3 (p.x(),p.y(),p.z());
-}
-
-
-
 /*
  *  N*N*N 来确定点
  *   然后保证后，通过格点表面采样法，然后连接边还原
@@ -946,68 +888,6 @@ vector<vector<int> > container_grid_dir{{-1,-1,-1},{-1,-1,0},{-1,-1,1},
                                         {1,0,-1},{1,0,0},{1,0,1},
                                         {1,1,-1},{1,1,0},{1,1,1},};
 
-
-
-int furthest_K2_point_in_vector(int x , const vector<K2::Point_3>& v){
-    int ans = x;
-    for(int i=0;i<v.size();i++){
-        if( (v[i] - v[x]).squared_length() > (v[ans] - v[x]).squared_length()){
-            ans = i;
-        }
-    }
-    return ans;
-}
-
-
-vector<K2::Point_3> delete_same_K2_point_in_vector( const vector<K2::Point_3>& v){
-    vector<K2::Point_3> ret;
-    for(int i=0;i<v.size();i++){
-        bool flag = false;
-        for(int j=0;j<ret.size();j++){
-            if( (v[i] - ret[j]).squared_length() <= CGAL::Epeck::FT(0)){
-                flag = true;
-            }
-        }
-        if(!flag){
-            ret.push_back(v[i]);
-        }
-    }
-    return ret;
-}
-
-MeshKernel::iGameVertex sort_by_polar_order(vector<MeshKernel::iGameVertex>& v,MeshKernel::iGameVertex orthogonal_direction){
-    MeshKernel::iGameVertex center(0,0,0);
-    for(auto i : v){
-        center = center + i;
-    }
-    center /= v.size();
-    if(v.size() <=1)
-        return center;
-
-    function<int(double,double)> quadrant = [](double x,double y){
-        if(x>0 && y > 0)return 1;
-        else if(x<0 && y > 0)return 2;
-        else if(x<0 && y < 0)return 3;
-        return 4;
-    };
-    Plane_3 p;
-    MeshKernel::iGameVertex x_axis = (v[0] - center).normalize();
-    MeshKernel::iGameVertex y_axis = (orthogonal_direction % x_axis).normalize();
-
-    sort(v.begin(),v.end(),[&](MeshKernel::iGameVertex v1 , MeshKernel::iGameVertex v2){
-        double x1 = (v1 - center) * x_axis;
-        double y1 = (v1 - center) * y_axis;
-        double x2 = (v2 - center) * x_axis;
-        double y2 = (v2 - center) * y_axis;
-        int q1 = quadrant(x1,y1);
-        int q2 = quadrant(x2,y2);
-        if(q1!=q2)return q1<q2;
-        else
-            return x1*y2 - x2*y1 > 0;
-
-    });
-    return center;
-}
 
 void sort_by_polar_order(vector<K2::Point_3>& v,K2::Vector_3 orthogonal_direction){
     K2::Vector_3 center_v(0,0,0);
@@ -1802,7 +1682,7 @@ int main(int argc, char* argv[]) {
 
                         if(!flag) {
                             int side_type = //get_side_type(Point_K2_to_iGameVertex(CGAL::centroid(tri)));
-                                    cgal_polygon->inMesh(Point_K2_to_iGameVertex(CGAL::centroid(tri)));
+                                    cgal_polygon->inMesh((CGAL::centroid(tri)));
                             if(side_type !=1) {
                                 flag = true;
                                 //cout <<"GGST" << endl;

@@ -21,4 +21,8 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
 git clone git@github.com:TsukiMiyabiLake/Thickening2.git
+cd Thickening2
+mkdir build
+cmake ../ -DCMAKE_BUILD_TYPE=Release
+make
 ```

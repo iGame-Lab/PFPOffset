@@ -88,9 +88,9 @@ public:
 
     };
 
-    bool inMesh(MeshKernel::iGameVertex v) {
+    bool inMesh(K2::Point_3 v) {
        // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2 > inside(poly);
-        CGAL::Bounded_side res = (*inside)(K2::Point_3(v.x(), v.y(), v.z()));
+        CGAL::Bounded_side res = (*inside)(v);
         if (res == CGAL::ON_BOUNDED_SIDE)
             return true;
         return false;
