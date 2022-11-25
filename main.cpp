@@ -752,7 +752,7 @@ vector<ApproximateField>faces_approximate_field;
 
 vector<MeshKernel::iGameVertex> min_move_g;
 vector<MeshKernel::iGameVertex> max_move_g;
-MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle vh){
+MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle vh,bool &is_succ){
     MeshKernel::iGameVertex v = mesh->fast_iGameVertex[vh];
     int m = mesh->FastNeighborFhOfVertex_[vh].size();
     Eigen::SparseMatrix<double> hessian(3, 3);     //P: n*n正定矩阵,必须为稀疏矩阵SparseMatrix
@@ -790,8 +790,8 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
         MeshKernel::iGameVertex new_v = v + normal * avg_move_dist;
         avg_move_vertex += normal * avg_move_dist;
 
-        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * 1.15;
-        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * 0.8;
+        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * 1.25;
+        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * 0.95;
 
         double d = -(normal.x() * new_v.x() + normal.y() * new_v.y() +  normal.z() * new_v.z());
 
@@ -805,11 +805,11 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
 
 
 
-        for(int i=0;i<3;i++)
-            for(int j=0;j<3;j++)
-                hessian.coeffRef(i,j)+=A.coeff(i,j)*2;
-        for(int i=0;i<3;i++)
-            gradient.coeffRef(i) +=  D2.coeffRef(i);
+//        for(int i=0;i<3;i++)
+//            for(int j=0;j<3;j++)
+//                hessian.coeffRef(i,j)+=A.coeff(i,j)*2;
+//        for(int i=0;i<3;i++)
+//            gradient.coeffRef(i) +=  D2.coeffRef(i);
 
 
         for(int i=0;i<3;i++)
@@ -824,13 +824,13 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
     min_move_g[vh] =  v + avg_move_vertex;
 
     avg_move_vertex = v + avg_move_vertex;;
-    hessian.coeffRef(0,0) += (2.0)/1000;
-    hessian.coeffRef(1,1) += (2.0)/1000;
-    hessian.coeffRef(2,2) += (2.0)/1000;
+    hessian.coeffRef(0,0) += (2.0);
+    hessian.coeffRef(1,1) += (2.0);
+    hessian.coeffRef(2,2) += (2.0);
 
-    gradient.coeffRef(0) -= (2.0/1000) * v.x();
-    gradient.coeffRef(1) -= (2.0/1000) * v.y();
-    gradient.coeffRef(2) -= (2.0/1000) * v.z();
+    gradient.coeffRef(0) -= (2.0) * v.x();
+    gradient.coeffRef(1) -= (2.0) * v.y();
+    gradient.coeffRef(2) -= (2.0) * v.z();
 
     OsqpEigen::Solver solver;
     solver.settings()->setVerbosity(false);
@@ -844,10 +844,12 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
     solver.data()->setUpperBound(upperBound);
     solver.initSolver();
     if(solver.solve()) {
+        is_succ = true;
         Eigen::VectorXd QPSolution = solver.getSolution();
         return {QPSolution.coeffRef(0), QPSolution.coeffRef(1), QPSolution.coeffRef(2)};
     }
     else{
+        is_succ = false;
         puts("use avg_move_vertex instead");
         return avg_move_vertex;
     }
@@ -931,13 +933,13 @@ int main(int argc, char* argv[]) {
 
     string input_filename(argv[1]);
     FILE *file9 = fopen( (input_filename + "_9.obj").c_str(), "w");
-    FILE *file10 = fopen( (input_filename + "_10.obj").c_str(), "w");
+    //FILE *file10 = fopen( (input_filename + "_10.obj").c_str(), "w");
     FILE *file13 = fopen( (input_filename + "_13.off").c_str(), "w");
 
 
     FILE *file4 = fopen( (input_filename + "_4.obj").c_str(), "w");
     FILE *file5 = fopen( (input_filename + "_5.obj").c_str(), "w");
-    FILE *file6 = fopen( (input_filename + "_6.obj").c_str(), "w");
+    //FILE *file6 = fopen( (input_filename + "_6.obj").c_str(), "w");
     // freopen("../debugoutput.txt","w",stdout);
     default_move = 0.01;
     grid_len = 2.5;
@@ -962,8 +964,9 @@ int main(int argc, char* argv[]) {
     }
     //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
     if(argc > 3 ) {
+        cout <<"default_move_dist : "<< stod(string(argv[3])) << endl;
         for (int i = 0; i < mesh->FaceSize(); i++) {
-            mesh->faces(MeshKernel::iGameFaceHandle(i)).move_dist =  stod(string(argv[3]));
+            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist =  stod(string(argv[3]));
         }
     }
     else if(*input_filename.rbegin() != '2') {
@@ -1000,9 +1003,27 @@ int main(int argc, char* argv[]) {
 
     field_move_face.resize(mesh->FaceSize());
     field_move_K2_triangle.resize(mesh->FaceSize());
-
+    int f4id = 1;
+    int f5id = 1;
     for(int i=0;i<mesh->VertexSize();i++){
-        field_move_vertex[i] = do_quadratic_error_metric(MeshKernel::iGameVertexHandle(i));
+        bool is_succ = true;
+        field_move_vertex[i] = do_quadratic_error_metric(MeshKernel::iGameVertexHandle(i),is_succ);
+        if(is_succ) {
+            fprintf(file4, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
+                    mesh->fast_iGameVertex[i].z());
+            fprintf(file4, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
+                    field_move_vertex[i].z());
+            fprintf(file4, "l %d %d\n", f4id, f4id + 1);
+            f4id+=2;
+        }
+        else{
+            fprintf(file5, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
+                    mesh->fast_iGameVertex[i].z());
+            fprintf(file5, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
+                    field_move_vertex[i].z());
+            fprintf(file5, "l %d %d\n", f5id, f5id + 1);
+            f5id+=2;
+        }
     }
     cout <<"build st "<< endl;
     std::vector <std::shared_ptr<std::thread> > build_thread_pool(thread_num);
@@ -1249,7 +1270,7 @@ int main(int argc, char* argv[]) {
    // atomic<int>maxx_face_size(0);
     //atomic<int> qq1(0);
    // atomic<int> qq2(0);
-    std::mutex mu;
+   // std::mutex mu;
     std::vector<std::shared_ptr<std::thread> > each_frame_thread(thread_num);
     vector<K2::Point_3> final_gen_vertex;
     vector<vector<size_t> > final_gen_face;
@@ -1345,6 +1366,7 @@ int main(int argc, char* argv[]) {
 
                 std::unordered_map<std::size_t,int> face_belong_field_mp;
                 std::list<K2::Triangle_3> field_triangles;
+                std::unordered_map<std::size_t,vector<int>> face_belong_field_source_id;
 
                 std::unordered_map<std::size_t,int> face_belong_field_mp_final_round;
                 std::list<K2::Triangle_3> field_triangles_final_round;
@@ -1361,6 +1383,10 @@ int main(int argc, char* argv[]) {
                             if (triangle_through_grid(tri_this)) {
                                 field_triangles.push_back(tri_this);
                                 face_belong_field_mp[tri_this.id()] = i;
+                                face_belong_field_source_id[tri_this.id()] = vector<int>{faces_approximate_field[field_through_list[i]].bound_face_id[j][0],
+                                                                                         faces_approximate_field[field_through_list[i]].bound_face_id[j][1],
+                                                                                         faces_approximate_field[field_through_list[i]].bound_face_id[j][2]};
+
                             }
                         }
                         field_triangles_final_round.push_back(tri_this);
@@ -1384,6 +1410,7 @@ int main(int argc, char* argv[]) {
 
 
                 Tree aabb_tree(field_triangles.begin(),field_triangles.end());
+                std::vector<std::vector<int> >maybe_used_face_source_id;
                 for(auto this_face : field_triangles){
                    std::list< Tree::Intersection_and_primitive_id<K2::Triangle_3>::Type> intersections;
                    aabb_tree.all_intersections(this_face,std::back_inserter(intersections));
@@ -1440,6 +1467,7 @@ int main(int argc, char* argv[]) {
                        maybe_used_face.push_back(this_face);
                        maybe_used_face_belong_field.push_back(this_face_id);
                        maybe_used_face_seg_cutting.push_back(segment_cutting);
+                       maybe_used_face_source_id.push_back(face_belong_field_source_id[this_face.id()]);
                    }
                }
 
@@ -1708,8 +1736,17 @@ int main(int argc, char* argv[]) {
                         if(flag) {
                             continue;
                         }
-
-                       generated_face_list.push_back(K2::Triangle_3(tri.vertex(0),tri.vertex(2),tri.vertex(1)));
+                        //if(maybe_used_face_source_id[i][0] >= 3 && maybe_used_face_source_id[i][1] >= 3 && maybe_used_face_source_id[i][2] >= 3)
+                        generated_face_list.push_back(K2::Triangle_3(tri.vertex(0),tri.vertex(2),tri.vertex(1)));
+//                        else{
+//                            static int vid = 1;
+//                            std::unique_lock<std::mutex>lock(mu);
+//                            fprintf(file10,"v %lf %lf %lf\n",vvv0.x(),vvv0.y(),vvv0.z());
+//                            fprintf(file10,"v %lf %lf %lf\n",vvv2.x(),vvv2.y(),vvv2.z());
+//                            fprintf(file10,"v %lf %lf %lf\n",vvv1.x(),vvv1.y(),vvv1.z());
+//                            fprintf(file10,"f %d %d %d\n",vid,vid+1,vid+2);
+//                            vid+=3;
+//                        }
 /*****************************/
 //                        auto vvv0 = Point_K2_to_iGameVertex(tri.vertex(0));
 //                        auto vvv1 = Point_K2_to_iGameVertex(tri.vertex(1));
