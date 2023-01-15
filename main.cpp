@@ -772,7 +772,7 @@ vector<ApproximateField>faces_approximate_field;
 
 vector<MeshKernel::iGameVertex> min_move_g;
 vector<MeshKernel::iGameVertex> max_move_g;
-MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle vh,bool &is_succ){
+MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle vh,bool &is_succ,int depth=0){
     MeshKernel::iGameVertex v = mesh->fast_iGameVertex[vh];
     int m = mesh->FastNeighborFhOfVertex_[vh].size();
     Eigen::SparseMatrix<double> hessian(3, 3);     //P: n*n正定矩阵,必须为稀疏矩阵SparseMatrix
@@ -810,8 +810,8 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
         MeshKernel::iGameVertex new_v = v + normal * avg_move_dist;
         avg_move_vertex += normal * avg_move_dist;
 
-        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * 1.25;
-        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * 0.95;
+        MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * (1.25+0.1*depth);
+        MeshKernel::iGameVertex move_min_v = v + normal * avg_move_dist * (0.95-0.1*depth);
 
         double d = -(normal.x() * new_v.x() + normal.y() * new_v.y() +  normal.z() * new_v.z());
 
@@ -870,8 +870,7 @@ MeshKernel::iGameVertex do_quadratic_error_metric(MeshKernel::iGameVertexHandle 
     }
     else{
         is_succ = false;
-        puts("use avg_move_vertex instead");
-        return avg_move_vertex;
+        return do_quadratic_error_metric(vh,is_succ,depth+1);
     }
 }
 double mix_factor = 0.5;
@@ -1059,12 +1058,12 @@ int main(int argc, char* argv[]) {
 
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
     string input_filename(argv[1]);
-   // FILE *file9 = fopen( (input_filename + "_9.obj").c_str(), "w");
+    FILE *file9 = fopen( (input_filename + "_9.obj").c_str(), "w");
     //FILE *file10 = fopen( (input_filename + "_10.obj").c_str(), "w");
 //    FILE *file13 = fopen( (input_filename + "_13.off").c_str(), "w");
 //
 //
-//   // FILE *file4 = fopen( (input_filename + "_4.obj").c_str(), "w");
+     FILE *file4 = fopen( (input_filename + "_4.obj").c_str(), "w");
 //    //FILE *file5 = fopen( (input_filename + "_5.obj").c_str(), "w");
 //    //FILE *file5_1 = fopen( (input_filename + "_5_1.obj").c_str(), "w");
 //    //FILE *file5_2 = fopen( (input_filename + "_5_2.obj").c_str(), "w");
@@ -1128,7 +1127,7 @@ int main(int argc, char* argv[]) {
                     mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)]+
                     mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)])/3).z();
 
-            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = max(default_move_dist*((maxx-this_z)/(maxx-minx))/15,
+            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = max(default_move_dist*((maxx-this_z)/(maxx-minx))/20,
                                                                                  default_move_dist/50);
         }
     }
@@ -1178,14 +1177,17 @@ int main(int argc, char* argv[]) {
         bool is_succ = true;
 
         field_move_vertex[i] = do_quadratic_error_metric(MeshKernel::iGameVertexHandle(i),is_succ);
-//        fprintf(file4, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
-//                mesh->fast_iGameVertex[i].z());
-//        fprintf(file4, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
-//                field_move_vertex[i].z());
-//        fprintf(file4, "l %d %d\n", f4id, f4id + 1);
-//        f4id+=2;
+        fprintf(file4, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
+                mesh->fast_iGameVertex[i].z());
+        fprintf(file4, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
+                field_move_vertex[i].z());
+        fprintf(file4, "l %d %d\n", f4id, f4id + 1);
+        f4id+=2;
 
     }
+
+
+
     cout <<"build st "<< endl;
     std::vector <std::shared_ptr<std::thread> > build_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {
@@ -1229,7 +1231,36 @@ int main(int argc, char* argv[]) {
         build_thread_pool[i]->join();
 
 
+    int f15id = 0;
+    int xxx=0;
+    for(int i=0;i<mesh->FaceSize();i++) {
+        if(xxx <3 && faces_approximate_field[i].bound_face_id.size() !=8 )continue;
+        if(xxx >=3 &&faces_approximate_field[i].bound_face_id.size() !=6 )continue;
+        if(xxx == 6) break;
+        cout << faces_approximate_field[i].bound_face_id.size() << endl;
+        FILE *file15 = fopen( (input_filename + "_" + to_string(xxx+100) +".obj").c_str(), "w");
+        xxx++;
+        int tt = 1;
+        for(int j=0;j<faces_approximate_field[i].bound_face_id.size();j++){
+            vector<MeshKernel::iGameVertex> tmp{
+                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][0]],
+                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][1]],
+                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][2]]};
 
+            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
+                    CGAL::to_double(tmp[0].y()),
+                    CGAL::to_double(tmp[0].z()));
+            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
+                    CGAL::to_double(tmp[1].y()),
+                    CGAL::to_double(tmp[1].z()));
+            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
+                    CGAL::to_double(tmp[2].y()),
+                    CGAL::to_double(tmp[2].z()));
+            fprintf(file15, "f %d %d %d\n", tt, tt + 1, tt + 2);
+            tt += 3;
+        }
+    }
+    return 0;
 
     std::vector <std::shared_ptr<std::thread> > one_ring_select_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {
@@ -1476,11 +1507,11 @@ int main(int argc, char* argv[]) {
                         if (!is_visit.count(j)) {
                             double dist = cgal_vertex_triangle_dist(fh.second, getGridVertex(j, 0), mesh);
                             double move_limit = *set<double>
-                                    {(field_move_vertex[fh.second.vh(0)]-mesh->fast_iGameVertex[fh.second.vh(0)]).norm(),
-                                     (field_move_vertex[fh.second.vh(1)]-mesh->fast_iGameVertex[fh.second.vh(1)]).norm(),
+                                    {(field_move_vertex[fh.second.vh(1)]-mesh->fast_iGameVertex[fh.second.vh(0)]).norm(),
+                                     (field_move_vertex[fh.second.vh(2)]-mesh->fast_iGameVertex[fh.second.vh(1)]).norm(),
                                      (field_move_vertex[fh.second.vh(2)]-mesh->fast_iGameVertex[fh.second.vh(0)]).norm()
-                                     }.rbegin();
-                            if (dist <  grid_len*1.74+fh.second.move_dist ) { //TODO : zheli youhua cheng pianyi juli de shiji jisuan
+                                    }.rbegin();
+                            if (dist <  (grid_len*1.74/2+move_limit) ) { //TODO : zheli youhua cheng pianyi juli de shiji jisuan
                                 q.push(j);
                                 is_visit.insert(j);
                             }
@@ -1549,26 +1580,26 @@ int main(int argc, char* argv[]) {
     map<int,vector<long long > > debug_time_use;
 
 //28 6 5
-//    for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
-//       //if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
-//        //if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1 ))continue;
-//        //if(!(each_grid->first.x == 28 && each_grid->first.y == 6 && each_grid->first.z == 5 ))continue;
-//        auto small  = getGridVertex(each_grid->first,0);
-//        auto big  = getGridVertex(each_grid->first,7);
-//        static int f3_id = 1;
-//        for (int ii = 0; ii < 7; ii++) {
-//            for (int jj = 0; jj < DirectedGridEdge[ii].size(); jj++) {
-//                int from = ii;
-//                int to = DirectedGridEdge[ii][jj];
-//                MeshKernel::iGameVertex fv = getGridiGameVertex(small, big, from);
-//                MeshKernel::iGameVertex tv = getGridiGameVertex(small, big, to);
-//                fprintf(file9, "v %lf %lf %lf\n", fv.x(), fv.y(), fv.z());
-//                fprintf(file9, "v %lf %lf %lf\n", tv.x(), tv.y(), tv.z());
-//                fprintf(file9, "l %d %d\n", f3_id, f3_id + 1);
-//                f3_id += 2;
-//            }
-//        }
-//    }
+    for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
+       //if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
+        //if(!(each_grid->first.x == 19 && each_grid->first.y == 19 && each_grid->first.z == 1 ))continue;
+        //if(!(each_grid->first.x == 28 && each_grid->first.y == 6 && each_grid->first.z == 5 ))continue;
+        auto small  = getGridVertex(each_grid->first,0);
+        auto big  = getGridVertex(each_grid->first,7);
+        static int f3_id = 1;
+        for (int ii = 0; ii < 7; ii++) {
+            for (int jj = 0; jj < DirectedGridEdge[ii].size(); jj++) {
+                int from = ii;
+                int to = DirectedGridEdge[ii][jj];
+                MeshKernel::iGameVertex fv = getGridiGameVertex(small, big, from);
+                MeshKernel::iGameVertex tv = getGridiGameVertex(small, big, to);
+                fprintf(file9, "v %lf %lf %lf\n", fv.x(), fv.y(), fv.z());
+                fprintf(file9, "v %lf %lf %lf\n", tv.x(), tv.y(), tv.z());
+                fprintf(file9, "l %d %d\n", f3_id, f3_id + 1);
+                f3_id += 2;
+            }
+        }
+    }
     std::vector<std::vector<std::size_t> > each_grid_face_list;
     for(auto  each_container_face : container_grid_face){
         each_grid_face_list.push_back({(size_t)each_container_face[0],(size_t)each_container_face[1],(size_t)each_container_face[2]});
@@ -2435,7 +2466,7 @@ int main(int argc, char* argv[]) {
                             bool flag_positive = false;
                             bool flag_negative = false;
                             for(int j=0;j<field_through_list.size();j++){
-                                if(positive_side.count(j) && intersection_v[j].size()%2==0){
+                                if(positive_side.count(j) && intersection_v[j].size()%2==0 && tri.supporting_plane().has_on_positive_side(faces_approximate_field[field_through_list[j]].center)){
                                     flag_positive = true;
                                 }
                             }
@@ -2469,7 +2500,7 @@ int main(int argc, char* argv[]) {
                                     }
                                 }
                                 for(int j=0;j<field_through_list.size();j++){
-                                    if(negative_side.count(j) && intersection_v_r[j].size()%2==0){
+                                    if(negative_side.count(j) && intersection_v_r[j].size()%2==0  && tri.supporting_plane().has_on_negative_side(faces_approximate_field[field_through_list[j]].center)){
                                         flag_negative = true;
                                     }
                                 }
@@ -2483,7 +2514,7 @@ int main(int argc, char* argv[]) {
                             if(!flag) {
                                 int side_type = //get_side_type(Point_K2_to_iGameVertex(CGAL::centroid(tri)));
                                         cgal_polygon->inMesh((CGAL::centroid(tri)));
-                                if(side_type !=1) {
+                                if(side_type != 1) {
                                     flag = true;
                                     //cout <<"GGST" << endl;
                                 }
@@ -2698,7 +2729,7 @@ int main(int argc, char* argv[]) {
     FILE *file7 = fopen( (input_filename + "_7.obj").c_str(), "w+");
 
 
-    if(0){
+    if(1){
         CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2> * inside = new CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2>(pmesh);
 
         int xxid = 1;
