@@ -1234,31 +1234,142 @@ int main(int argc, char* argv[]) {
     int f15id = 0;
     int xxx=0;
     for(int i=0;i<mesh->FaceSize();i++) {
-        if(xxx <3 && faces_approximate_field[i].bound_face_id.size() !=8 )continue;
-        if(xxx >=3 &&faces_approximate_field[i].bound_face_id.size() !=6 )continue;
-        if(xxx == 6) break;
-        cout << faces_approximate_field[i].bound_face_id.size() << endl;
-        FILE *file15 = fopen( (input_filename + "_" + to_string(xxx+100) +".obj").c_str(), "w");
-        xxx++;
-        int tt = 1;
-        for(int j=0;j<faces_approximate_field[i].bound_face_id.size();j++){
-            vector<MeshKernel::iGameVertex> tmp{
-                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][0]],
-                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][1]],
-                    faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][2]]};
-
-            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
-                    CGAL::to_double(tmp[0].y()),
-                    CGAL::to_double(tmp[0].z()));
-            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
-                    CGAL::to_double(tmp[1].y()),
-                    CGAL::to_double(tmp[1].z()));
-            fprintf(file15, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
-                    CGAL::to_double(tmp[2].y()),
-                    CGAL::to_double(tmp[2].z()));
-            fprintf(file15, "f %d %d %d\n", tt, tt + 1, tt + 2);
-            tt += 3;
+        int ccc = 0;
+        for(int k=0;k<faces_approximate_field[i].bound_face_useful.size();k++) {
+            if ((faces_approximate_field[i].bound_face_id[k][0] >= 3 &&
+                 faces_approximate_field[i].bound_face_id[k][1] >= 3 &&
+                 faces_approximate_field[i].bound_face_id[k][2] >= 3) ||
+                (faces_approximate_field[i].bound_face_id[k][0] < 3 &&
+                 faces_approximate_field[i].bound_face_id[k][1] < 3 &&
+                 faces_approximate_field[i].bound_face_id[k][2] < 3))
+                continue;
+            if(faces_approximate_field[i].bound_face_useful[k] == true)
+                ccc++;
         }
+        cout << "ccc" << ccc << endl;
+        if(ccc!=1  || faces_approximate_field[i].bound_face_id.size() !=8 )continue;
+
+
+
+
+//        if(xxx <3 && faces_approximate_field[i].bound_face_id.size() !=8 )continue;
+//        if(xxx >=3 &&faces_approximate_field[i].bound_face_id.size() !=6 )continue;
+//        if(xxx == 6) break;
+        cout << faces_approximate_field[i].bound_face_id.size() << endl;
+        xxx++;
+        if(xxx <2)continue;
+        FILE *file200 = fopen( (input_filename + "_" + to_string(200) +".obj").c_str(), "w");
+        FILE *file201 = fopen( (input_filename + "_" + to_string(201) +".obj").c_str(), "w");
+        FILE *file202 = fopen( (input_filename + "_" + to_string(202) +".obj").c_str(), "w");
+        FILE *file203 = fopen( (input_filename + "_" + to_string(203) +".obj").c_str(), "w");
+        FILE *file204 = fopen( (input_filename + "_" + to_string(204) +".obj").c_str(), "w");
+
+        int tt200 = 1;
+        int tt202 = 1;
+        int tt203 = 1;
+        for(int j=0;j<faces_approximate_field[i].bound_face_id.size();j++){
+            if(faces_approximate_field[i].bound_face_id[j][0] <3 and
+                    faces_approximate_field[i].bound_face_id[j][1] <3 and
+                    faces_approximate_field[i].bound_face_id[j][2] < 3) {
+                vector<MeshKernel::iGameVertex> tmp{
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][0]],
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][1]],
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][2]]};
+                fprintf(file200, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
+                        CGAL::to_double(tmp[0].y()),
+                        CGAL::to_double(tmp[0].z()));
+                fprintf(file200, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
+                        CGAL::to_double(tmp[1].y()),
+                        CGAL::to_double(tmp[1].z()));
+                fprintf(file200, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
+                        CGAL::to_double(tmp[2].y()),
+                        CGAL::to_double(tmp[2].z()));
+                fprintf(file200, "f %d %d %d\n", 1, 1 + 1, 1 + 2);
+            }
+            else{
+                vector<MeshKernel::iGameVertex> tmp{
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][0]],
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][1]],
+                        faces_approximate_field[i].bound_face_vertex[faces_approximate_field[i].bound_face_id[j][2]]};
+
+                fprintf(file201, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
+                        CGAL::to_double(tmp[0].y()),
+                        CGAL::to_double(tmp[0].z()));
+                fprintf(file201, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
+                        CGAL::to_double(tmp[1].y()),
+                        CGAL::to_double(tmp[1].z()));
+                fprintf(file201, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
+                        CGAL::to_double(tmp[2].y()),
+                        CGAL::to_double(tmp[2].z()));
+                fprintf(file201, "f %d %d %d\n", tt200, tt200 + 1, tt200 + 2);
+                tt200 += 3;
+            }
+        }
+
+
+
+        cout << "nei se" << mesh->NeighborFh(MeshKernel::iGameFaceHandle(i)).size() << endl;
+        set<int>se;
+        for(auto j : mesh->NeighborFh(MeshKernel::iGameFaceHandle(int(i)))){
+            se.insert(mesh->faces(j).vh(0));
+            se.insert(mesh->faces(j).vh(1));
+            se.insert(mesh->faces(j).vh(2));
+        }
+        int tt204 = 1;
+        cout <<"st do_quadratic_error_metric" << endl;
+        for(auto i: se){
+
+            fprintf(file204, "v %lf %lf %lf\n", mesh->fast_iGameVertex[i].x(), mesh->fast_iGameVertex[i].y(),
+                    mesh->fast_iGameVertex[i].z());
+            fprintf(file204, "v %lf %lf %lf\n", field_move_vertex[i].x(), field_move_vertex[i].y(),
+                    field_move_vertex[i].z());
+            fprintf(file204, "l %d %d\n", tt204, tt204 + 1);
+            tt204+=2;
+
+        }
+
+        for(auto nei: mesh->NeighborFh(MeshKernel::iGameFaceHandle(i))){
+            if(nei != i){
+                for(int j=0;j<faces_approximate_field[nei].bound_face_id.size();j++){
+                    vector<MeshKernel::iGameVertex> tmp{
+                            faces_approximate_field[nei].bound_face_vertex[faces_approximate_field[nei].bound_face_id[j][0]],
+                            faces_approximate_field[nei].bound_face_vertex[faces_approximate_field[nei].bound_face_id[j][1]],
+                            faces_approximate_field[nei].bound_face_vertex[faces_approximate_field[nei].bound_face_id[j][2]]};
+
+                    if(faces_approximate_field[nei].bound_face_id[j][0] <3 and
+                       faces_approximate_field[nei].bound_face_id[j][1] <3 and
+                       faces_approximate_field[nei].bound_face_id[j][2] < 3) {
+
+                        fprintf(file203, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
+                                CGAL::to_double(tmp[0].y()),
+                                CGAL::to_double(tmp[0].z()));
+                        fprintf(file203, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
+                                CGAL::to_double(tmp[1].y()),
+                                CGAL::to_double(tmp[1].z()));
+                        fprintf(file203, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
+                                CGAL::to_double(tmp[2].y()),
+                                CGAL::to_double(tmp[2].z()));
+                        fprintf(file203, "f %d %d %d\n", tt203, tt203 + 1, tt203 + 2);
+                        tt203 += 3;
+                    }
+                    else{
+                        fprintf(file202, "v %lf %lf %lf \n", CGAL::to_double(tmp[0].x()),
+                                CGAL::to_double(tmp[0].y()),
+                                CGAL::to_double(tmp[0].z()));
+                        fprintf(file202, "v %lf %lf %lf \n", CGAL::to_double(tmp[1].x()),
+                                CGAL::to_double(tmp[1].y()),
+                                CGAL::to_double(tmp[1].z()));
+                        fprintf(file202, "v %lf %lf %lf \n", CGAL::to_double(tmp[2].x()),
+                                CGAL::to_double(tmp[2].y()),
+                                CGAL::to_double(tmp[2].z()));
+                        fprintf(file202, "f %d %d %d\n", tt202, tt202 + 1, tt202 + 2);
+                        tt202 += 3;
+                    }
+                }
+            }
+        }
+
+        break;
     }
     return 0;
 
