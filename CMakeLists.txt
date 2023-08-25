@@ -33,7 +33,7 @@ file (GLOB CppFile
         MeshKernel/*
         Eigen/*
         )
-add_executable(Thicken2 main.cpp lib_impl.cpp DSU.cpp ${CppFile})
+add_executable(Thicken2 main.cpp DSU.cpp ${CppFile})
 
 if(APPLE)
     target_link_libraries(Thicken2

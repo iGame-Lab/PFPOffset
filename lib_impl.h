@@ -5,7 +5,7 @@
 #ifndef THICKEN2_LIB_IMPL_H
 #define THICKEN2_LIB_IMPL_H
 
-#define myeps 1e-6
+#define myeps 1e-4
 
 
 #include <iostream>
@@ -95,10 +95,28 @@ public:
             return true;
         return false;
     }
+
+    bool inMeshByDistance(K2::Point_3 v) {
+        // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2 > inside(poly);
+
+        CGAL::Bounded_side res = (*inside)(v);
+        if (res == CGAL::ON_BOUNDED_SIDE)
+            return true;
+        return false;
+    }
 };
 
 
-double cgal_vertex_triangle_dist(MeshKernel::iGameFace f, MeshKernel::iGameVertex v, std::shared_ptr<MeshKernel::SurfaceMesh>mesh) ;
+double cgal_vertex_triangle_dist(MeshKernel::iGameFace f, MeshKernel::iGameVertex v, std::shared_ptr<MeshKernel::SurfaceMesh>mesh) {
+    Point a(mesh->fast_iGameVertex.at(f.vh(0)).x(), mesh->fast_iGameVertex.at(f.vh(0)).y(), mesh->fast_iGameVertex.at(f.vh(0)).z());
+    Point b(mesh->fast_iGameVertex.at(f.vh(1)).x(), mesh->fast_iGameVertex.at(f.vh(1)).y(), mesh->fast_iGameVertex.at(f.vh(1)).z());
+    Point c(mesh->fast_iGameVertex.at(f.vh(2)).x(), mesh->fast_iGameVertex.at(f.vh(2)).y(), mesh->fast_iGameVertex.at(f.vh(2)).z());
+    Point point_query(v.x(), v.y(), v.z());
+    K::FT sqd = squared_distance(K::Triangle_3(a, b, c),point_query);
+    double res = sqrt(sqd);
+    return res;
+
+}
 
 
 #endif //THICKEN2_LIB_IMPL_H
