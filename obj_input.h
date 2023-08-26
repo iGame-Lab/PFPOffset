@@ -7,6 +7,7 @@
 double default_move = 0.1;
 int thread_num = 12;
 double max_distance_limit = 1.30;
+double min_distance_limit = 1.0;
 MeshKernel::SurfaceMesh ReadObjFile(const std::string &_InputFile) {
     //std::ifstream inputfile(_InputFile, std::ios::in);
     std::vector<MeshKernel::iGameVertex> vertices;

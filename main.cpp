@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     flag_parser();
 
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
-    string input_filename(argv[1]);
+
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
 
@@ -79,9 +79,6 @@ int main(int argc, char* argv[]) {
     mesh->build_fast();
     cout <<"mesh->build_fast() succ" << endl;
     double default_move_dist = 0.05;
-    if(argc > 2 )
-        grid_len = stod(string(argv[2]));
-    else
     {
         double sum = 0;
         for(int i=0;i<mesh->FaceSize();i++){
@@ -110,28 +107,11 @@ int main(int argc, char* argv[]) {
         cout << "grid_len "<< grid_len<<endl;
 
     }
-    //mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile("../data/test_orgv2.obj2")); grid_len = 12.5; double default_move_dist = 0.8;
-    if(argc > 3 ) {
-        cout <<"default_move_dist : "<< stod(string(argv[3])) << endl;
-        for (int i = 0; i < mesh->FaceSize(); i++) {
-            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist =  stod(string(argv[3]));
-        }
+    for (int i = 0; i < mesh->FaceSize(); i++) {
+        mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist =  default_move_dist;
     }
-    else if(*input_filename.rbegin() != '2') {
-        auto tmp = mesh->BBoxMax -  mesh->BBoxMin;
-        //default_move_dist = grid_len/4;//abs(*set<double>{tmp.x(),tmp.y(),tmp.z()}.begin());
-        double minx = mesh->BBoxMin.z();
-        double maxx = mesh->BBoxMax.z();
-        cout << "default_move_dist: "<< default_move_dist << endl;
-        for(int i=0;i<mesh->FaceSize();i++){
-            double this_z = ((mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0)]+
-                    mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)]+
-                    mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)])/3).z();
 
-            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = max(default_move_dist*1.5*((maxx-this_z)/(maxx-minx)),
-                                                                                 default_move_dist/2);
-        }
-    }
+
 
 
     field_move_vertex.resize(mesh->VertexSize());
@@ -824,9 +804,17 @@ int main(int argc, char* argv[]) {
                     K2::Point_3 v0 = global_vertex_list[global_face_list[i].idx0];
                     K2::Point_3 v1 = global_vertex_list[global_face_list[i].idx1];
                     K2::Point_3 v2 = global_vertex_list[global_face_list[i].idx2];
-                    if(!cgal_polygon->inMesh(centroid(K2::Triangle_3(v0,v1,v2)))){
-                        global_face_list[i].useful = -300;
+                    if (running_mode == 2) {
+                        if (!cgal_polygon->inMesh(centroid(K2::Triangle_3(v0, v1, v2)))) {
+                            global_face_list[i].useful = -300;
+                        }
                     }
+                    else{
+                        if (!cgal_polygon->outMesh(centroid(K2::Triangle_3(v0, v1, v2)))) {
+                            global_face_list[i].useful = -300;
+                        }
+                    }
+
                     if(origin_face_tree.squared_distance(centroid(K2::Triangle_3(v0,v1,v2))) < CGAL::Epeck::FT(myeps)){
                         global_face_list[i].useful = -300;
                     }
@@ -875,8 +863,14 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < global_face_list.size(); i++) {
         if(global_face_list[i].useful>0) {
-            fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx1 + 1,
-                    global_face_list[i].idx2 + 1);
+            if(running_mode == 1) {
+                fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx2 + 1,
+                        global_face_list[i].idx1 + 1);
+            }
+            else {
+                fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx1 + 1,
+                        global_face_list[i].idx2 + 1);
+            }
         }
     }
     fclose(file6);

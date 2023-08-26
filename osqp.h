@@ -4,7 +4,7 @@
 
 #ifndef THICKEN2_OSQP_H
 #define THICKEN2_OSQP_H
-
+int running_mode = 2;
 MeshKernel::iGameVertex do_quadratic_error_metric_check(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGameFaceHandle> neighbor_face_list,bool &is_succ,double& dist){
     MeshKernel::iGameVertex v = mesh->fast_iGameVertex[vh];
     int m = neighbor_face_list.size();
@@ -37,7 +37,8 @@ MeshKernel::iGameVertex do_quadratic_error_metric_check(MeshKernel::iGameVertexH
                    (mesh->fast_iGameVertex[mesh->fast_iGameFace[f].vh(2)]
                     - mesh->fast_iGameVertex[mesh->fast_iGameFace[f].vh(0)])).normalize();
 
-        normal = normal * -1;
+        if (running_mode == 2)
+            normal = normal * -1;
 //        MeshKernel::iGameVertex new_v = v + normal * mesh->fast_iGameFace[f].move_dist;
 //
 //        MeshKernel::iGameVertex move_max_v = v + normal * mesh->fast_iGameFace[f].move_dist*1.35;
@@ -47,7 +48,7 @@ MeshKernel::iGameVertex do_quadratic_error_metric_check(MeshKernel::iGameVertexH
 
         // MeshKernel::iGameVertex move_max_v = v + normal * avg_move_dist * (1.25+0.1*depth);
         MeshKernel::iGameVertex move_max_v = v + normal * mesh->fast_iGameFace[f].move_dist * max_distance_limit;
-        MeshKernel::iGameVertex move_min_v = v + normal * mesh->fast_iGameFace[f].move_dist;
+        MeshKernel::iGameVertex move_min_v = v + normal * mesh->fast_iGameFace[f].move_dist * min_distance_limit;
 
         double d = -(normal.x() * new_v.x() + normal.y() * new_v.y() +  normal.z() * new_v.z());
 

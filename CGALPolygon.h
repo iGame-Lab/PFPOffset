@@ -5,7 +5,7 @@
 #ifndef THICKEN2_CGALPOLYGON_H
 #define THICKEN2_CGALPOLYGON_H
 
-#define myeps 1e-4
+double myeps = 1e-4;
 
 
 #include <iostream>
@@ -95,7 +95,13 @@ public:
             return true;
         return false;
     }
-
+    bool outMesh(K2::Point_3 v) {
+        // CGAL::Side_of_triangle_mesh<CGAL::Polyhedron_3<K2>, K2 > inside(poly);
+        CGAL::Bounded_side res = (*inside)(v);
+        if (res == CGAL::ON_UNBOUNDED_SIDE)
+            return true;
+        return false;
+    }
 
 };
 
