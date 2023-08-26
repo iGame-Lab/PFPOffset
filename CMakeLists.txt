@@ -10,7 +10,7 @@ include_directories(/usr/local/include/osqp/)
 include_directories(/opt/homebrew/include/eigen3)
 
 include_directories(/opt/osqp-eigen/include/)
-
+include_directories(vcglib/)
 LINK_DIRECTORIES(/usr/local/lib/)
 
 find_package(OsqpEigen REQUIRED)
@@ -33,7 +33,7 @@ file (GLOB CppFile
         MeshKernel/*
         Eigen/*
         )
-add_executable(Thicken2 main.cpp DSU.cpp ${CppFile})
+add_executable(Thicken2 main.cpp DSU.cpp remeshing.cpp ${CppFile})
 
 if(APPLE)
     target_link_libraries(Thicken2

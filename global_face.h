@@ -21,4 +21,5 @@ vector<vector<MeshKernel::iGameVertex> > field_move_vertices;
 vector<vector<MeshKernel::iGameVertex> > field_move_face;
 vector<K2::Triangle_3> field_move_K2_triangle;
 vector<K2::Point_3> global_vertex_list;
+vector<GlobalFace> global_face_list;
 #endif //THICKEN2_GLOBAL_FACE_H

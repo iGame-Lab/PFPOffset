@@ -54,6 +54,8 @@
 #include "osqp.h"
 #include "dp.h"
 #include "sort_by_polar_order.h"
+#include "remeshing.h"
+#include "single_coverage_ray_detect.h"
 using namespace std;
 int main(int argc, char* argv[]) {
 
@@ -74,7 +76,7 @@ int main(int argc, char* argv[]) {
     FILE *file2 = fopen( (input_filename + "_2.obj").c_str(), "w");
     FILE *file1 = fopen( (input_filename + "_1.obj").c_str(), "w");
 //    //FILE *file5_3 = fopen( (input_filename + "_5_3.obj").c_str(), "w");
-    FILE *file6 = fopen( (input_filename + "_6.obj").c_str(), "w");
+    FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
     FILE *file7 = fopen( (input_filename + "_7.obj").c_str(), "w");
     FILE *file8 = fopen( (input_filename + "_8.obj").c_str(), "w");
     // freopen("../debugoutput.txt","w",stdout);
@@ -413,7 +415,7 @@ int main(int argc, char* argv[]) {
 
 
     std::vector <std::shared_ptr<std::thread> > each_grid_thread_pool(thread_num);
-    for(int i=0;i<thread_num;i++) { //todo 存在多线程异常
+    for(int i=0;i<thread_num;i++) { //todo 存在偶发性多线程异常
         each_grid_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
             int each_grid_cnt =-1;
             for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) { // todo 逻辑修改
@@ -637,7 +639,7 @@ int main(int argc, char* argv[]) {
         }
     }
     //exit(0);
-    vector<GlobalFace> global_face_list(global_face_cnt);
+    global_face_list.resize(global_face_cnt);
     global_face_cnt = 0;
     for (int field_id = 0; field_id < fsize; field_id++) {
         for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_id.size(); i++) {
@@ -826,7 +828,9 @@ int main(int argc, char* argv[]) {
                     // 这里加入自己射线正负方向的寻找
                     // 2 出现多次 加入
                 }
-                if(  global_face_list[i].useful ){
+
+
+                if(  global_face_list[i].useful>0 ){
                     K2::Point_3 v0 = global_vertex_list[global_face_list[i].idx0];
                     K2::Point_3 v1 = global_vertex_list[global_face_list[i].idx1];
                     K2::Point_3 v2 = global_vertex_list[global_face_list[i].idx2];
@@ -843,27 +847,50 @@ int main(int argc, char* argv[]) {
     for(int i=0;i<thread_num;i++)
         global_face_final_generate_thread_pool[i]->join();
 
+    std::vector <std::shared_ptr<std::thread> > special_case_detect(thread_num);
+    for(int i=0;i<thread_num;i++) {
+        special_case_detect[i] = make_shared<std::thread>([&](int now_id) {
+            for (int i = 0; i < global_face_list.size(); i++) {
+                if (i % thread_num != now_id)continue;
+                bool inner_flag = true;
+                if(global_face_list[i].useful > 0 && !global_face_list[i].special_field_id.empty() )[[unlikely]]{
+                    cout <<"meeting rare case, do special method"<<std::endl;
+                    K2::Triangle_3 tri(global_vertex_list[global_face_list[i].idx0],
+                                       global_vertex_list[global_face_list[i].idx1],
+                                       global_vertex_list[global_face_list[i].idx2]);
+                    for(auto field_id : global_face_list[i].special_field_id){
+                        if(in_single_coverage_field_ray_detect(field_id,tri)){
+                            inner_flag = false;
+                            break;
+                        }
+                    }
+                    if(!inner_flag){
+                        global_face_list[i].useful = -200;
+                    }
+                }
+            }
+        },i);
+    }
+    for(int i=0;i<thread_num;i++)
+        special_case_detect[i]->join();
+
+
     for(int i=0;i<global_vertex_list.size();i++){
         fprintf(file6,"v %lf %lf %lf\n",CGAL::to_double(global_vertex_list[i].x()),
                 CGAL::to_double(global_vertex_list[i].y()),
                 CGAL::to_double(global_vertex_list[i].z()));
     }
 
-    for (int i = 0; i < global_face_list.size(); i++) {
-        if(global_face_list[i].useful>0)
-        fprintf(file6,"f %d %d %d\n",global_face_list[i].idx0+1,global_face_list[i].idx1+1,global_face_list[i].idx2+1);
-    }
-    for(int i=0;i<global_vertex_list.size();i++){
-        fprintf(file8,"v %lf %lf %lf\n",CGAL::to_double(global_vertex_list[i].x()),
-                CGAL::to_double(global_vertex_list[i].y()),
-                CGAL::to_double(global_vertex_list[i].z()));
-    }
+
 
     for (int i = 0; i < global_face_list.size(); i++) {
-        if(global_face_list[i].useful>0 && global_face_list[i].special_field_id.size())//这里还得搞的
-            fprintf(file8,"f %d %d %d\n",global_face_list[i].idx0+1,global_face_list[i].idx1+1,global_face_list[i].idx2+1);
+        if(global_face_list[i].useful>0) {
+            fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx1 + 1,
+                    global_face_list[i].idx2 + 1);
+        }
     }
-
+    fclose(file6);
+    Remeshing().run((input_filename + "_result.obj").c_str());
     //8月22 解决漏求交的问题，先定位到具体的面，然后再修改
     return 0;
 }
