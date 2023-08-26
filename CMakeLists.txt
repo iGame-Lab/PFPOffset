@@ -33,7 +33,7 @@ file (GLOB CppFile
         MeshKernel/*
         Eigen/*
         )
-add_executable(Thicken2 main.cpp DSU.cpp remeshing.cpp ${CppFile})
+add_executable(Thicken2 main.cpp DSU.cpp remeshing.cpp ${CppFile} )
 
 if(APPLE)
     target_link_libraries(Thicken2
@@ -42,6 +42,7 @@ if(APPLE)
             /opt/homebrew/lib/libmpfr.dylib
             ${Boost_LIBRARY_DIRS}
             OsqpEigen::OsqpEigen
+            /opt/homebrew/lib/libgflags.dylib
             )
 else()
     target_link_libraries(Thicken2
@@ -50,5 +51,6 @@ else()
             -lmpfr
             ${Boost_LIBRARY_DIRS}
             OsqpEigen::OsqpEigen
+            -lgflags
             )
 endif()

@@ -56,30 +56,20 @@
 #include "sort_by_polar_order.h"
 #include "remeshing.h"
 #include "single_coverage_ray_detect.h"
+#include "flag_parser.h"
+
+
+
 using namespace std;
 int main(int argc, char* argv[]) {
+    google::ParseCommandLineFlags(&argc, &argv, true);
+    flag_parser();
 
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
     string input_filename(argv[1]);
-    FILE *file9 = fopen( (input_filename + "_9.obj").c_str(), "w");
-    FILE *file10 = fopen( (input_filename + "_10.obj").c_str(), "w");
-    FILE *file11 = fopen( (input_filename + "_11.obj").c_str(), "w");
-//
-//
-     FILE *file4 = fopen( (input_filename + "_4.obj").c_str(), "w");
-    FILE *file5 = fopen( (input_filename + "_5.obj").c_str(), "w");
-    FILE *file55 = fopen( (input_filename + "_55.obj").c_str(), "w");
-    FILE *file3 = fopen( (input_filename + "_3.obj").c_str(), "w");
-    FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
-    FILE *file13 = fopen( (input_filename + "_13.obj").c_str(), "w");
-    FILE *file14 = fopen( (input_filename + "_14.obj").c_str(), "w");
-    FILE *file2 = fopen( (input_filename + "_2.obj").c_str(), "w");
-    FILE *file1 = fopen( (input_filename + "_1.obj").c_str(), "w");
-//    //FILE *file5_3 = fopen( (input_filename + "_5_3.obj").c_str(), "w");
+    FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
-    FILE *file7 = fopen( (input_filename + "_7.obj").c_str(), "w");
-    FILE *file8 = fopen( (input_filename + "_8.obj").c_str(), "w");
-    // freopen("../debugoutput.txt","w",stdout);
+
     default_move = 0.01;
     grid_len = 2.5;
 

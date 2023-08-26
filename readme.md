@@ -76,8 +76,6 @@ The version of macOS must later than 13.0.
 cgal version must be larger than 5.5
 ```bash
 sudo su root
-apt update
-apt upgrade
 brew install cgal
 brew install eigen
 brew install gflags
