@@ -70,6 +70,8 @@ int main(int argc, char* argv[]) {
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
 
+    FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
+
     default_move = 0.01;
     grid_len = 2.5;
 
@@ -252,6 +254,28 @@ int main(int argc, char* argv[]) {
 
     for(int i=0;i<thread_num;i++)
         one_ring_select_thread_pool[i]->join();
+
+//    int f12id = 1;
+//    for(int i=0;i<mesh->FaceSize();i++) {
+//        for (int j = 0; j < coverage_field_list[i].bound_face_id.size(); j++) {
+//            K::Triangle_3 tri_this(
+//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][0]],
+//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][1]],
+//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][2]]);
+//            cout<<i<<" "<<j<<" "<<coverage_field_list[i].bound_face_useful[j] <<endl;
+//            if (coverage_field_list[i].bound_face_useful[j] > 0) {
+//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(0).x(), tri_this.vertex(0).y(),
+//                        tri_this.vertex(0).z());
+//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(1).x(), tri_this.vertex(1).y(),
+//                        tri_this.vertex(1).z());
+//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(2).x(), tri_this.vertex(2).y(),
+//                        tri_this.vertex(2).z());
+//                fprintf(file12, "f %d %d %d\n", f12id, f12id + 1, f12id + 2);
+//                f12id+=3;
+//            }
+//        }
+//    }
+    //exit(0);
 
     for(auto  each_container_face : container_grid_face){
         each_grid_face_list.push_back({(size_t)each_container_face[0],(size_t)each_container_face[1],(size_t)each_container_face[2]});
@@ -815,7 +839,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
 
-                    if(origin_face_tree.squared_distance(centroid(K2::Triangle_3(v0,v1,v2))) < CGAL::Epeck::FT(myeps)){
+                    if(sqrt(CGAL::to_double(origin_face_tree.squared_distance(centroid(K2::Triangle_3(v0,v1,v2))))) < CGAL::Epeck::FT(myeps)){
                         global_face_list[i].useful = -300;
                     }
                 }
@@ -862,6 +886,7 @@ int main(int argc, char* argv[]) {
 
 
     for (int i = 0; i < global_face_list.size(); i++) {
+        cout <<i <<" "<< global_face_list[i].useful << endl;
         if(global_face_list[i].useful>0) {
             if(running_mode == 1) {
                 fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx2 + 1,
@@ -875,7 +900,7 @@ int main(int argc, char* argv[]) {
     }
     fclose(file6);
     Remeshing().run((input_filename + "_result.obj").c_str());
-    //8月22 解决漏求交的问题，先定位到具体的面，然后再修改
+
     return 0;
 }
 // 1 2 3 4 5 6
