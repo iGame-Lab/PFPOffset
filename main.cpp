@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
 
-    FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
+    //FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
 
     default_move = 0.01;
     grid_len = 2.5;

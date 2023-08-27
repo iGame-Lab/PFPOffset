@@ -7,7 +7,8 @@
 #include <unordered_map>
 #include <queue>
 #include <vector>
-
+#include <condition_variable>
+#include <thread>
 
 class DSU {
     std::unordered_map<unsigned long long,unsigned long long>pre;
