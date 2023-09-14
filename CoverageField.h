@@ -119,7 +119,7 @@ struct CoverageField {
         Fuzzy_circle fs(p, myeps);
         tree->search(std::back_inserter(result), fs);
         //  cout <<"result.size() : " << result.size() << endl;
-        return encode_map[CGAL::hash_value(*result.begin())];
+        return encode_map[unique_hash_value(*result.begin())];
     };
     void renumber(){
         std::vector<K::Point_3> kd_tree_points;
@@ -139,7 +139,7 @@ struct CoverageField {
             Fuzzy_circle fs(kd_tree_points[i], myeps);
             tree->search(std::back_inserter(result), fs);
             for (const Point& p : result) {
-                dsu.join(CGAL::hash_value(kd_tree_points[i]),hash_value(p));
+                dsu.join(unique_hash_value(kd_tree_points[i]),unique_hash_value(p));
             }
         }
         int encode_cnt = 0;
@@ -155,8 +155,8 @@ struct CoverageField {
 
         for(int i=0;i<kd_tree_points.size();i++){
             //  cout <<"getbelong:" <<i<<" "<< encode_map[CGAL::hash_value(kd_tree_points[i])] <<endl;
-            encode_vec[encode_map[CGAL::hash_value(kd_tree_points[i])]] += kd_tree_points[i] - K::Point_3 (0,0,0);
-            encode_num[encode_map[CGAL::hash_value(kd_tree_points[i])]]++;
+            encode_vec[encode_map[unique_hash_value(kd_tree_points[i])]] += kd_tree_points[i] - K::Point_3 (0,0,0);
+            encode_num[encode_map[unique_hash_value(kd_tree_points[i])]]++;
         }
 
 
@@ -241,7 +241,7 @@ struct CoverageField {
         map<size_t,int> mp;
         for(int i=0;i<bound_face_vertex_inexact.size();i++){
 
-            mp[CGAL::hash_value(bound_face_vertex_inexact[i])] = i;
+            mp[unique_hash_value(bound_face_vertex_inexact[i])] = i;
             bound_face_vertex_exact.emplace_back(bound_face_vertex_inexact[i].x(),
                                                  bound_face_vertex_inexact[i].y(),
                                                  bound_face_vertex_inexact[i].z());
@@ -260,9 +260,9 @@ struct CoverageField {
 
         K2::Vector_3 center_vec = {0,0,0};
         for (const auto& triangle : surface_triangles) {
-            int v0_id = mp[CGAL::hash_value(triangle.vertex(0))];
-            int v1_id = mp[CGAL::hash_value(triangle.vertex(1))];
-            int v2_id = mp[CGAL::hash_value(triangle.vertex(2))];
+            int v0_id = mp[unique_hash_value(triangle.vertex(0))];
+            int v1_id = mp[unique_hash_value(triangle.vertex(1))];
+            int v2_id = mp[unique_hash_value(triangle.vertex(2))];
 
             bound_face_id.push_back({v0_id, v1_id, v2_id});
             center_vec += (centroid(K2::Triangle_3(bound_face_vertex_exact[v0_id],

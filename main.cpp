@@ -50,6 +50,7 @@
 #include "global_face.h"
 #include "geometric_data.h"
 #include "cdt.h"
+#include "unique_hash.h"
 #include "CoverageField.h"
 #include "osqp.h"
 #include "dp.h"
@@ -672,7 +673,7 @@ int main(int argc, char* argv[]) {
     map<unsigned long long,int> global_kd_tree_mp;
     for(int i=0;i<global_vertex_list.size();i++){
         K::Point_3 p = PointK2_Point(global_vertex_list[i]);
-        unsigned long long id = CGAL::hash_value(p);
+        unsigned long long id = unique_hash_value(p);
         global_kd_tree_mp[id] = i;
         kd_tree_points.push_back(p);
     }
@@ -689,7 +690,7 @@ int main(int argc, char* argv[]) {
                 Fuzzy_circle fs(kd_tree_points[i], myeps);
                 global_kd_tree.search(std::back_inserter(result), fs);
                 for (const Point& p : result) {
-                    dsu_multi_thread.join(i,global_kd_tree_mp[CGAL::hash_value(p)]);
+                    dsu_multi_thread.join(i,global_kd_tree_mp[unique_hash_value(p)]);
                     //dsu.join(CGAL::hash_value(kd_tree_points[i]),hash_value(p));
                 }
             }
