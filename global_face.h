@@ -17,10 +17,12 @@ struct GlobalFace{
     std::unordered_map<int,vector<pair<K2::Point_3,int> > > ray_detect_map;//field 交点 int
 };
 vector<MeshKernel::iGameVertex> field_move_vertex;
-vector<vector<MeshKernel::iGameVertex> > field_move_vertices;
+vector<vector<K::Point_3> > field_move_vertices;
 vector<vector<MeshKernel::iGameVertex> > field_move_face;
-vector<double>merge_limit;
 vector<K2::Triangle_3> field_move_K2_triangle;
 vector<K2::Point_3> global_vertex_list;
+vector<int> global_vertex_list_cnt;
+vector<K2::Vector_3> global_vertex_list_avg;
 vector<GlobalFace> global_face_list;
+vector<double>merge_limit;
 #endif //THICKEN2_GLOBAL_FACE_H

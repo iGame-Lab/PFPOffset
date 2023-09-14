@@ -58,6 +58,7 @@
 #include "remeshing.h"
 #include "single_coverage_ray_detect.h"
 #include "flag_parser.h"
+#include "merge_initial.h"
 
 
 
@@ -98,7 +99,7 @@ int main(int argc, char* argv[]) {
             sum += sqrt(minx*maxx);
 
         }
-        default_move_dist = sum/mesh->FaceSize()*1.5/4;
+        default_move_dist = sum/mesh->FaceSize()*1.5/4*3; //3破了
         double x_len = (mesh->BBoxMax - mesh->BBoxMin).x();
         double y_len = (mesh->BBoxMax - mesh->BBoxMin).y();
         double z_len = (mesh->BBoxMax - mesh->BBoxMin).z();
@@ -144,7 +145,7 @@ int main(int argc, char* argv[]) {
 
         merge_limit[i] = min_move_dist/10;
     }
-   // merge_initial();
+    merge_initial();
 
 
     for(int i=0;i<mesh->FaceSize();i++){
@@ -362,7 +363,7 @@ int main(int argc, char* argv[]) {
                 double move_limit = 0;
                 for(int j=0;j<3;j++){
                     for(int k=0;k<field_move_vertices[j].size();k++){
-                        move_limit = max(move_limit,(field_move_vertices[fh.second.vh(j)][k] - mesh->fast_iGameVertex[fh.second.vh(j)]).norm());
+                        move_limit = max(move_limit,(Point_K_to_iGameVertex(field_move_vertices[fh.second.vh(j)][k]) - mesh->fast_iGameVertex[fh.second.vh(j)]).norm());
                     }
                 }
 

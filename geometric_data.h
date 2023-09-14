@@ -24,6 +24,14 @@ inline  MeshKernel::iGameVertex Point_K2_to_iGameVertex(const K2::Point_3& v){
     return MeshKernel::iGameVertex(CGAL::to_double(v.x()),CGAL::to_double(v.y()),CGAL::to_double(v.z()));
 }
 
+inline  K::Point_3 Point_K2_to_Point_K(const K2::Point_3& v){
+    return K::Point_3 (CGAL::to_double(v.x()),CGAL::to_double(v.y()),CGAL::to_double(v.z()));
+}
+
+inline  MeshKernel::iGameVertex Point_K_to_iGameVertex(const K::Point_3& v){
+    return MeshKernel::iGameVertex((v.x()),(v.y()),(v.z()));
+}
+
 
 bool segment_in_line(K2::Segment_3 a,K2::Segment_3  b){
     CGAL::Epeck::FT d0 = CGAL::squared_distance(a.supporting_line(),b.vertex(0));
@@ -33,6 +41,24 @@ bool segment_in_line(K2::Segment_3 a,K2::Segment_3  b){
         return true;
     return false;
 }
+
+bool segment_coincide_triangle(K2::Segment_3 a,K2::Triangle_3 tri){
+    for(int i=0;i<3;i++){
+        K2::Segment_3 c(tri.vertex(i),tri.vertex((i+1)%3));
+        if(segment_in_line(a,c))return true;
+    }
+    return false;
+}
+
+bool point_coincide_triangle(K2::Point_3 a,K2::Triangle_3 tri){
+    for(int i=0;i<3;i++){
+        K2::Segment_3 c(tri.vertex(i),tri.vertex((i+1)%3));
+        CGAL::Epeck::FT d = CGAL::squared_distance(c.supporting_line(),a);
+        if(d <= CGAL::Epeck::FT(0))return true;
+    }
+    return false;
+}
+
 
 bool segment_in_line(K2::Segment_2 a,K2::Segment_2  b){
     K2::FT d0 = CGAL::squared_distance(a.supporting_line(),b.vertex(0));
@@ -76,4 +102,9 @@ double triangle_squared_aspect_ratio(vector<MeshKernel::iGameVertex > v){
     }
     return *max_element(length.begin(),length.end()) / *min_element(length.begin(),length.end());
 }
+
+
+
+
+
 #endif //THICKEN2_GEOMETRIC_DATA_H
