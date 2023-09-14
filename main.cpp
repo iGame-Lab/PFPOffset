@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
     FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
 
     FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
+    FILE *file14 = fopen( (input_filename + "_14.obj").c_str(), "w");
 
     default_move = 0.01;
     grid_len = 2.5;
@@ -125,31 +126,48 @@ int main(int argc, char* argv[]) {
 
     cout <<"st do_quadratic_error_metric" << endl;
 
+    merge_limit.resize(mesh->VertexSize());
     for(int i=0;i<mesh->VertexSize();i++){
         vector<MeshKernel::iGameFaceHandle> neighbor_list;
+        double min_move_dist = 1e30;
         for(auto j : mesh->FastNeighborFhOfVertex_[i]){
             neighbor_list.push_back(j);
         }
-        vector<int> dp_result = solve_by_dp(MeshKernel::iGameVertexHandle(i),neighbor_list);
-       // cout <<"dp_result.size(): " <<dp_result.size() << endl;
-        for(auto tmp: dp_result){
-            vector<MeshKernel::iGameFaceHandle> dp_neighbor_list;
-            for(int j=0;j<neighbor_list.size();j++){
-                if(tmp & (1<< j))
-                    dp_neighbor_list.push_back(neighbor_list[j]);
-            }
-            bool is_succ = false;
-            double exceed_dist;
-            MeshKernel::iGameVertex t = do_quadratic_error_metric_check(MeshKernel::iGameVertexHandle(i),dp_neighbor_list,is_succ,exceed_dist);
-            field_move_vertices[i].push_back(t);
+        // cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<"start" << endl;
+        vector<MeshKernel::iGameVertex> dp_result = solve_by_dp(MeshKernel::iGameVertexHandle(i),neighbor_list);
+        //cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<dp_result.size() << endl;
+        for(auto t: dp_result){
+            field_move_vertices[i].emplace_back(t.x(),t.y(),t.z());
+            min_move_dist = min(min_move_dist,mesh->fast_iGameVertex[i].dist(t));
         }
-    }
 
+        merge_limit[i] = min_move_dist/10;
+    }
+   // merge_initial();
 
 
     for(int i=0;i<mesh->FaceSize();i++){
         coverage_field_list.push_back(CoverageField(MeshKernel::iGameFaceHandle(i)));
     }
+    int pre_cnt = 0;
+    for(int i=0;i<mesh->FaceSize();i++){
+//        if(coverage_field_list[i].bound_face_vertex_inexact.size() == 7 ) {
+        for (int j = 0; j < coverage_field_list[i].bound_face_vertex_inexact.size(); j++) {
+            fprintf(file14,"v %lf %lf %lf\n",CGAL::to_double(coverage_field_list[i].bound_face_vertex_inexact[j].x()),
+                    CGAL::to_double(coverage_field_list[i].bound_face_vertex_inexact[j].y()),
+                    CGAL::to_double(coverage_field_list[i].bound_face_vertex_inexact[j].z()));
+        }
+        for(int j=0;j<coverage_field_list[i].bound_face_id.size();j++){
+            fprintf(file14,"f %d %d %d\n",coverage_field_list[i].bound_face_id[j][0]+1+pre_cnt,
+                    coverage_field_list[i].bound_face_id[j][1]+1+pre_cnt,
+                    coverage_field_list[i].bound_face_id[j][2]+1+pre_cnt);
+        }
+        pre_cnt += coverage_field_list[i].bound_face_vertex_inexact.size();
+//            break;
+//        }
+    }
+
+
 
     std::vector <std::shared_ptr<std::thread> > one_ring_select_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {

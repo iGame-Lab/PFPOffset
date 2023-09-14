@@ -27,12 +27,14 @@ vector<int> get_sub_state(int state,int face_list_size){
     return ret;
 }
 
-vector<int> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGameFaceHandle> neighbor_face_list){
+vector<MeshKernel::iGameVertex> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGameFaceHandle> neighbor_face_list){
     if(neighbor_face_list.size()>=25)exit(0);
     vector<double>dp;
     vector<int>dp_source;
+    vector<MeshKernel::iGameVertex>dp_osqp_answer;
     dp.resize(1<<neighbor_face_list.size());
     dp_source.resize(1<<neighbor_face_list.size());
+    dp_osqp_answer.resize(1<<neighbor_face_list.size());
     fill(dp.begin(),dp.end(),-1);
     fill(dp_source.begin(),dp_source.end(),-1);
     function<double(int)> dfs = [&](int state){
@@ -44,11 +46,15 @@ vector<int> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGam
         }
         bool succ = false;
         double exceed_dist = 0;
-        MeshKernel::iGameVertex v_new = do_quadratic_error_metric_check(vh,local_neighbor_face_list,succ,exceed_dist);
-        if(succ){
-            dp[state] = (v_new - mesh->fast_iGameVertex[vh]).norm();
-            dp_source[state] = 0;
-            return dp[state];
+        for(int times=0;times<4;times++) { //避免osqp求解器的不稳定性,多尝试几次
+            MeshKernel::iGameVertex v_new = do_quadratic_error_metric_check(vh, local_neighbor_face_list, succ,
+                                                                            exceed_dist);
+            if (succ) {
+                dp[state] = (v_new - mesh->fast_iGameVertex[vh]).norm();
+                dp_osqp_answer[state] = v_new;
+                dp_source[state] = 0;
+                return dp[state];
+            }
         }
         vector<int>sub_state = std::move(get_sub_state(state,neighbor_face_list.size()));
         double minx = 1e100;
@@ -68,13 +74,15 @@ vector<int> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGam
     };
     dfs((1<<neighbor_face_list.size())-1);
     queue<int>q;
-    vector<int>ret;
+    vector<MeshKernel::iGameVertex>ret;
+
     q.push((1<<neighbor_face_list.size())-1);
     while(!q.empty()){
         int now = q.front();
         q.pop();
         if(dp_source[now] == 0){
-            ret.push_back(now);
+            //ret.push_back(now);
+            ret.push_back(dp_osqp_answer[now]);
         }
         else{
             q.push(dp_source[now]);
