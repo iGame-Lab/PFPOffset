@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
                                 vs.push_back(se);
                             }
                         }
-                        vector<vector<K2::Point_3> > res = CGAL_CDT({coverage_field_list[i].bound_face_vertex_exact[coverage_field_list[i].bound_face_id[j][0]],
+                        vector<vector<K2::Point_3> > res = CGAL_CDT_NEW({coverage_field_list[i].bound_face_vertex_exact[coverage_field_list[i].bound_face_id[j][0]],
                                                                      coverage_field_list[i].bound_face_vertex_exact[coverage_field_list[i].bound_face_id[j][1]],
                                                                      coverage_field_list[i].bound_face_vertex_exact[coverage_field_list[i].bound_face_id[j][2]]}, vs, tri_this);
                         //cout << res.size() <<endl;

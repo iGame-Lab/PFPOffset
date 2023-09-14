@@ -95,7 +95,7 @@ struct CoverageField {
             });
             sorted_bound_vertex.resize(std::unique(sorted_bound_vertex.begin(),sorted_bound_vertex.end())-sorted_bound_vertex.begin());
 
-            vector<vector<K2::Point_3> > res = CGAL_CDT(sorted_bound_vertex,cs,tri);
+            vector<vector<K2::Point_3> > res = CGAL_CDT_NEW(sorted_bound_vertex,cs,tri);
 
             for(int j=0;j<res.size();j++){
                 cdt_result.push_back(res[j]);
