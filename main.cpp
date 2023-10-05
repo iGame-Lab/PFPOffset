@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
 
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
-    FILE *file6 = fopen( (input_filename + "_result.obj").c_str(), "w");
+    FILE *file6 = fopen( (input_filename + "_tmp.obj").c_str(), "w");
 
     FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
     FILE *file14 = fopen( (input_filename + "_14.obj").c_str(), "w");
@@ -669,17 +669,16 @@ int main(int argc, char* argv[]) {
         }
         global_cnt += coverage_field_list[field_id].renumber_bound_face_vertex.size();
     }
-    cout <<"start kd tree join"<<endl;
-    std::vector<K::Point_3> kd_tree_points;
-    map<unsigned long long,int> global_kd_tree_mp;
-    for(int i=0;i<global_vertex_list.size();i++){
-        K::Point_3 p = PointK2_Point(global_vertex_list[i]);
-        unsigned long long id = unique_hash_value(p);
-        global_kd_tree_mp[id] = i;
-        kd_tree_points.push_back(p);
-    }
-    DSUMultiThread dsu_multi_thread((int)kd_tree_points.size());
-
+//    cout <<"start kd tree join"<<endl;
+//    std::vector<K::Point_3> kd_tree_points;
+//    map<unsigned long long,int> global_kd_tree_mp;
+//    for(int i=0;i<global_vertex_list.size();i++){
+//        K::Point_3 p = PointK2_Point(global_vertex_list[i]);
+//        unsigned long long id = unique_hash_value(p);
+//        global_kd_tree_mp[id] = i;
+//        kd_tree_points.push_back(p);
+//    }
+//    DSUMultiThread dsu_multi_thread((int)kd_tree_points.size());
 //    std::vector <std::shared_ptr<std::thread> > global_dsu_thread_pool(thread_num);
 //    dsu_multi_thread.run();
 //    for(int i=0;i<thread_num;i++) {
@@ -719,7 +718,7 @@ int main(int argc, char* argv[]) {
             int tv0 =  coverage_field_list[field_id].renumber_bound_face_vertex_global_id[coverage_field_list[field_id].renumber_bound_face_id[i][0]];
             int tv1 =  coverage_field_list[field_id].renumber_bound_face_vertex_global_id[coverage_field_list[field_id].renumber_bound_face_id[i][1]];
             int tv2 =  coverage_field_list[field_id].renumber_bound_face_vertex_global_id[coverage_field_list[field_id].renumber_bound_face_id[i][2]];
-            if(set<int>{tv0,tv1,tv2}.size() < 3)continue;
+            //if(set<int>{tv0,tv1,tv2}.size() < 3)continue;
             global_face_cnt++;
         }
     }
@@ -974,12 +973,16 @@ int main(int argc, char* argv[]) {
                 CGAL::to_double(global_vertex_list[i].z()));
     }
 
-
+    double sum_avg_edge = 0;
 
     for (int i = 0; i < global_face_list.size(); i++) {
         cout <<i <<" "<< global_face_list[i].useful << endl;
         if(global_face_list[i].useful>0) {
             if(running_mode == 1) {
+                sum_avg_edge += sqrt(CGAL::to_double((CGAL::squared_distance(global_vertex_list[global_face_list[i].idx0] , global_vertex_list[global_face_list[i].idx1]))));
+                sum_avg_edge += sqrt(CGAL::to_double((CGAL::squared_distance(global_vertex_list[global_face_list[i].idx2] , global_vertex_list[global_face_list[i].idx1]))));
+                sum_avg_edge += sqrt(CGAL::to_double((CGAL::squared_distance(global_vertex_list[global_face_list[i].idx0] , global_vertex_list[global_face_list[i].idx2]))));
+
                 fprintf(file6, "f %d %d %d\n", global_face_list[i].idx0 + 1, global_face_list[i].idx2 + 1,
                         global_face_list[i].idx1 + 1);
             }
@@ -990,9 +993,18 @@ int main(int argc, char* argv[]) {
         }
     }
     fclose(file6);
+    sum_avg_edge /=(global_face_list.size()*3*20);
 
+
+    string new_name = (input_filename + "_tmp.obj");
+    for(int i=0;i<4;i++)new_name.pop_back();
+    string cmd = ("../TetWild/build/Tetwild " + (input_filename + "_tmp.obj") + " -l " +to_string(sum_avg_edge)) +
+            (" && mv "+new_name+"__sf.obj " + input_filename+"_final_result.obj" );
+
+    //system(("mv "+new_name+"__sf.obj " + input_filename+"_result.obj" ).c_str());
     //Remeshing().run((input_filename + "_result.obj").c_str());
-
+    cout << cmd << endl;
+    system(cmd.c_str());
     return 0;
 }
 // 1 2 3 4 5 6

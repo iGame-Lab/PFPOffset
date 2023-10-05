@@ -94,8 +94,15 @@ cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
+cd ../..
 git clone git@github.com:TsukiMiyabiLake/Thickening2.git
 cd Thickening2
+cd TetWild
+mkdir build
+cd build
+cmake ..
+make
+cd ../..
 #git clone https://github.com/cnr-isti-vclab/vcglib # add the submodule vcglib 
 mkdir build
 cmake ../ -DCMAKE_BUILD_TYPE=Release
