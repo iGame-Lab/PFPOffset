@@ -680,39 +680,39 @@ int main(int argc, char* argv[]) {
     }
     DSUMultiThread dsu_multi_thread((int)kd_tree_points.size());
 
-    std::vector <std::shared_ptr<std::thread> > global_dsu_thread_pool(thread_num);
-    dsu_multi_thread.run();
-    for(int i=0;i<thread_num;i++) {
-        global_dsu_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
-            Kd_tree global_kd_tree(kd_tree_points.begin(),kd_tree_points.end());
-            for(int i=0;i<kd_tree_points.size();i++){
-                if (i % thread_num != now_id)continue;
-                std::vector<K::Point_3> result;
-                Fuzzy_circle fs(kd_tree_points[i], myeps);
-                global_kd_tree.search(std::back_inserter(result), fs);
-                for (const Point& p : result) {
-                    dsu_multi_thread.join(i,global_kd_tree_mp[unique_hash_value(p)]);
-                    //dsu.join(CGAL::hash_value(kd_tree_points[i]),hash_value(p));
-                }
-            }
-        },i);
-    }
-    for(int i=0;i<thread_num;i++)
-        global_dsu_thread_pool[i]->join();
-
-    cout <<"wait dsu_multi_thread stop"<< endl;
-    dsu_multi_thread.stop();
-    cout <<"wait dsu_multi_thread.join_thread->join()"<< endl;
-    dsu_multi_thread.join_thread->join();
-
-   // exit(0);
-    cout <<"global_vertex_id_sum:" << global_vertex_id_sum <<endl;
-    for (int field_id = 0; field_id < fsize; field_id++) {
-        for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_vertex_global_id.size(); i++) {
-
-            coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i] = dsu_multi_thread.find_root(coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i]);
-        }
-    }
+//    std::vector <std::shared_ptr<std::thread> > global_dsu_thread_pool(thread_num);
+//    dsu_multi_thread.run();
+//    for(int i=0;i<thread_num;i++) {
+//        global_dsu_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
+//            Kd_tree global_kd_tree(kd_tree_points.begin(),kd_tree_points.end());
+//            for(int i=0;i<kd_tree_points.size();i++){
+//                if (i % thread_num != now_id)continue;
+//                std::vector<K::Point_3> result;
+//                Fuzzy_circle fs(kd_tree_points[i], myeps);
+//                global_kd_tree.search(std::back_inserter(result), fs);
+//                for (const Point& p : result) {
+//                    dsu_multi_thread.join(i,global_kd_tree_mp[unique_hash_value(p)]);
+//                    //dsu.join(CGAL::hash_value(kd_tree_points[i]),hash_value(p));
+//                }
+//            }
+//        },i);
+//    }
+//    for(int i=0;i<thread_num;i++)
+//        global_dsu_thread_pool[i]->join();
+//
+//    cout <<"wait dsu_multi_thread stop"<< endl;
+//    dsu_multi_thread.stop();
+//    cout <<"wait dsu_multi_thread.join_thread->join()"<< endl;
+//    dsu_multi_thread.join_thread->join();
+//
+//   // exit(0);
+//    cout <<"global_vertex_id_sum:" << global_vertex_id_sum <<endl;
+//    for (int field_id = 0; field_id < fsize; field_id++) {
+//        for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_vertex_global_id.size(); i++) {
+//
+//            //coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i] = dsu_multi_thread.find_root(coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i]);
+//        }
+//    }
     int global_face_cnt = 0;
     for (int field_id = 0; field_id < fsize; field_id++) {
         for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_id.size(); i++) {
@@ -990,7 +990,8 @@ int main(int argc, char* argv[]) {
         }
     }
     fclose(file6);
-    Remeshing().run((input_filename + "_result.obj").c_str());
+
+    //Remeshing().run((input_filename + "_result.obj").c_str());
 
     return 0;
 }
