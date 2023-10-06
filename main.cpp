@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
             sum += sqrt(minx*maxx);
 
         }
-        default_move_dist = sum/mesh->FaceSize()*1.5/4*3; //3破了
+        default_move_dist = sum/mesh->FaceSize()*1.5/4*10;
         double x_len = (mesh->BBoxMax - mesh->BBoxMin).x();
         double y_len = (mesh->BBoxMax - mesh->BBoxMin).y();
         double z_len = (mesh->BBoxMax - mesh->BBoxMin).z();
@@ -128,23 +128,36 @@ int main(int argc, char* argv[]) {
 
     cout <<"st do_quadratic_error_metric" << endl;
 
-    merge_limit.resize(mesh->VertexSize());
-    for(int i=0;i<mesh->VertexSize();i++){
-        vector<MeshKernel::iGameFaceHandle> neighbor_list;
-        double min_move_dist = 1e30;
-        for(auto j : mesh->FastNeighborFhOfVertex_[i]){
-            neighbor_list.push_back(j);
-        }
-        // cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<"start" << endl;
-        vector<MeshKernel::iGameVertex> dp_result = solve_by_dp(MeshKernel::iGameVertexHandle(i),neighbor_list);
-        //cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<dp_result.size() << endl;
-        for(auto t: dp_result){
-            field_move_vertices[i].emplace_back(t.x(),t.y(),t.z());
-            min_move_dist = min(min_move_dist,mesh->fast_iGameVertex[i].dist(t));
-        }
 
-        merge_limit[i] = min_move_dist/10;
+    merge_limit.resize(mesh->VertexSize());
+    std::vector <std::shared_ptr<std::thread> > dp_thread_pool(thread_num);
+    for(int i=0;i<thread_num;i++) {
+        dp_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
+            for (int i = 0; i < mesh->VertexSize(); i++) {
+                if (i % thread_num != now_id)continue;
+                if (i % 20 == 0)
+                    cout << "dp: " << i << "/"<<mesh->VertexSize()<< endl;
+                vector<MeshKernel::iGameFaceHandle> neighbor_list;
+                double min_move_dist = 1e30;
+                for(auto j : mesh->FastNeighborFhOfVertex_[i]){
+                    neighbor_list.push_back(j);
+                }
+                // cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<"start" << endl;
+                vector<MeshKernel::iGameVertex> dp_result = solve_by_dp(MeshKernel::iGameVertexHandle(i),neighbor_list);
+                //cout <<i<<"//"<<mesh->VertexSize()<<" dp_result.size(): " <<dp_result.size() << endl;
+                for(auto t: dp_result){
+                    field_move_vertices[i].emplace_back(t.x(),t.y(),t.z());
+                    min_move_dist = min(min_move_dist,mesh->fast_iGameVertex[i].dist(t));
+                }
+
+                merge_limit[i] = min_move_dist/10;
+            }
+        }, i);
     }
+    for(int i=0;i<thread_num;i++)
+        dp_thread_pool[i]->join();
+
+
     merge_initial();
 
 
@@ -168,6 +181,7 @@ int main(int argc, char* argv[]) {
 //            break;
 //        }
     }
+    //exit(0);
 
 
 
@@ -761,7 +775,7 @@ int main(int argc, char* argv[]) {
             for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
                 each_grid_cnt++;
                 if (each_grid_cnt % thread_num != now_id)continue; //todo 这里需要开启
-                if (each_grid_cnt % (thread_num * 20) == now_id)
+                if (each_grid_cnt % (thread_num * 5) == now_id)
                     printf("face_generate_ray_detect_thread_pool %d/%d\n", each_grid_cnt, (int) frame_grid_mp.size());
 
                 unordered_map<unsigned long long , pair<int,int> > triangle_mapping;
@@ -874,8 +888,8 @@ int main(int argc, char* argv[]) {
             Tree origin_face_tree(origin_face_list.begin(),origin_face_list.end());
 
             for (int i = 0; i < global_face_list.size(); i++) {
-//                if(field_id %100 ==0)
-//                    cout << "field_id" << field_id << endl;
+                if(i %(thread_num*10) ==0)
+                    cout << "global_face_list:" << i <<"/"<<global_face_list.size()<< endl;
                 if (i % thread_num != now_id)continue;
                 if(global_face_list[i].useful == false )continue;
                 for(std::unordered_map<int,vector<pair<K2::Point_3,int> > >::iterator it = global_face_list[i].ray_detect_map.begin();
@@ -997,9 +1011,18 @@ int main(int argc, char* argv[]) {
 
 
     string new_name = (input_filename + "_tmp.obj");
-    for(int i=0;i<4;i++)new_name.pop_back();
-    string cmd = ("../TetWild/build/Tetwild " + (input_filename + "_tmp.obj") + " -l " +to_string(sum_avg_edge)) +
-            (" && mv "+new_name+"__sf.obj " + input_filename+"_final_result.obj" );
+    string cmd;
+//    for(int i=0;i<4;i++)new_name.pop_back();
+    if(0) {
+        cmd =
+                ("../fTetWild/build/FloatTetwild_bin -i" + (input_filename + "_tmp.obj")+
+                (" && mv " + new_name + "__sf.obj " + input_filename + "_final_result.obj");
+    }
+    else{
+        cmd = ("../TetWild/build/Tetwild " + (input_filename + "_tmp.obj") ) +
+                     (" && mv "+new_name+"__sf.obj " + input_filename+"_final_result.obj" );
+
+    }
 
     //system(("mv "+new_name+"__sf.obj " + input_filename+"_result.obj" ).c_str());
     //Remeshing().run((input_filename + "_result.obj").c_str());

@@ -5,7 +5,7 @@
 #ifndef THICKEN2_MERGE_INITIAL_H
 #define THICKEN2_MERGE_INITIAL_H
 //
-void subdivide(vector<int>v,std::vector<K::Point_3>& kd_tree_points_new){
+void subdivide(vector<int>v,std::vector<K::Point_3>& kd_tree_points_new,int cnt){
     if(v.size() == 0)return;
     //float delta_x = -1;
     double move_dist_avg = 0;
@@ -30,7 +30,7 @@ void subdivide(vector<int>v,std::vector<K::Point_3>& kd_tree_points_new){
         min_z = min(min_z, kd_tree_points_new[v[i]].z());
     }
     double dist = sqrt((max_x-min_x)*(max_x-min_x) + (max_y-min_y)*(max_y-min_y) + (max_z-min_z)*(max_z-min_z));
-    if(dist > move_dist_avg){
+    if(dist > move_dist_avg  && cnt < 4){
         vector<vector<int> >subdivide_next(8);
         for(int i=0;i<=1;i++){
             for(int j=0;j<=1;j++){
@@ -52,7 +52,7 @@ void subdivide(vector<int>v,std::vector<K::Point_3>& kd_tree_points_new){
             }
         }
         for(int i=0;i<8;i++){
-            subdivide(subdivide_next[i],kd_tree_points_new);
+            subdivide(subdivide_next[i],kd_tree_points_new,cnt+1);
         }
     }
     else{
@@ -121,7 +121,7 @@ void merge_initial(){
     }
     kd_tree_points_new.resize(kd_tree_points.size());
     for(int i=0;i<kd_tree_list.size();i++){
-        subdivide(kd_tree_list[i],kd_tree_points_new);
+        subdivide(kd_tree_list[i],kd_tree_points_new,0);
     }
 
     for(int i=0;i<kd_tree_points.size();i++){

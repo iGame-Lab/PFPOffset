@@ -100,10 +100,14 @@ cd Thickening2
 cd TetWild
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 cd ../..
-#git clone https://github.com/cnr-isti-vclab/vcglib # add the submodule vcglib 
+cd fTetWild
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
 mkdir build
 cmake ../ -DCMAKE_BUILD_TYPE=Release
 make

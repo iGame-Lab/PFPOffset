@@ -28,7 +28,7 @@ vector<int> get_sub_state(int state,int face_list_size){
 }
 
 vector<MeshKernel::iGameVertex> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGameFaceHandle> neighbor_face_list){
-    if(neighbor_face_list.size()>=25)exit(0);
+    if(neighbor_face_list.size()>=20)exit(0);
     vector<double>dp;
     vector<int>dp_source;
     vector<MeshKernel::iGameVertex>dp_osqp_answer;
@@ -46,31 +46,40 @@ vector<MeshKernel::iGameVertex> solve_by_dp(MeshKernel::iGameVertexHandle vh,vec
         }
         bool succ = false;
         double exceed_dist = 0;
+        double self_value = 1e100;
         for(int times=0;times<4;times++) { //避免osqp求解器的不稳定性,多尝试几次
             MeshKernel::iGameVertex v_new = do_quadratic_error_metric_check(vh, local_neighbor_face_list, succ,
                                                                             exceed_dist);
             if (succ) {
+                if((v_new - mesh->fast_iGameVertex[vh]).norm() < self_value){
+                    self_value = (v_new - mesh->fast_iGameVertex[vh]).norm();
+                }
                 dp[state] = (v_new - mesh->fast_iGameVertex[vh]).norm();
                 dp_osqp_answer[state] = v_new;
                 dp_source[state] = 0;
-                return dp[state];
+                self_value = dp[state];
             }
         }
-        vector<int>sub_state = std::move(get_sub_state(state,neighbor_face_list.size()));
         double minx = 1e100;
-        int from = -1;
-        for(auto next: sub_state){
-            if(next == 0 || state-next == 0)continue;
-            if(next > state-next)continue;
-            double sub_ans = dfs(next) + dfs(state-next);
-            if(sub_ans < minx){
-                from = next;
-                minx = sub_ans;
+        if(neighbor_face_list.size() >=3) {
+            vector<int> sub_state = std::move(get_sub_state(state, neighbor_face_list.size()));
+            int from = -1;
+            for (auto next: sub_state) {
+                if (next == 0 || state - next == 0)continue;
+                if (next > state - next)continue;
+                double sub_ans = dfs(next) + dfs(state - next);
+                if (sub_ans < minx) {
+                    from = next;
+                    minx = sub_ans;
+                }
+            }
+            if(self_value > minx) {
+                dp[state] = minx;
+                dp_source[state] = from;
+                return minx;
             }
         }
-        dp[state] = minx;
-        dp_source[state] = from;
-        return minx;
+        return min(minx,self_value);
     };
     dfs((1<<neighbor_face_list.size())-1);
     queue<int>q;
