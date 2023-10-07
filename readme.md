@@ -108,6 +108,7 @@ mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
+cd ../..
 mkdir build
 cmake ../ -DCMAKE_BUILD_TYPE=Release
 make
@@ -142,9 +143,7 @@ options:
                     1 is offsetting to the outside of the mesh;
                     2 is offsetting to the inside of the mesh.
                     
-  -e=<num>          This number is a double means the eps.
-                    When the distance of two points is smaller than eps, we will regard these two point as coinciding.
-                    You can set it is 0.0001 or do not set it.
+
 
                     
 
