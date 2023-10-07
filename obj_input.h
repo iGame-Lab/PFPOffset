@@ -17,7 +17,7 @@ MeshKernel::SurfaceMesh ReadObjFile(const std::string &_InputFile) {
     std::vector<std::vector<double>> uvs;
     std::unordered_map<int, int> V2N;// vertex to normal
     std::unordered_map<int, int> V2T;// vertex to uv
-    std::cout << "Reading " << _InputFile << " File" << std::endl;
+    //std::cout << "Reading " << _InputFile << " File" << std::endl;
     FILE *inputfile = fopen(_InputFile.c_str(), "r");
     char inputs[100];
     while (fscanf(inputfile, "%[^\n]\n", inputs) != EOF) {

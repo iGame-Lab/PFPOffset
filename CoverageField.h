@@ -107,72 +107,36 @@ struct CoverageField {
 
     }
 
-    Kd_tree * tree;
-    vector<K::Vector_3>encode_vec;
-    vector<int>encode_num;
+
     vector<int>renumber_bound_face_vertex_global_id;
     vector<int>renumber_bound_face_global_id;
     vector<bool>renumber_bound_face_useful;
     std::unordered_map<unsigned long long,int> encode_map;
-    int get_kdtree_id(K::Point_3 p){
-        std::vector<Point> result;
-        Fuzzy_circle fs(p, myeps);
-        tree->search(std::back_inserter(result), fs);
-        //  cout <<"result.size() : " << result.size() << endl;
-        return encode_map[unique_hash_value(*result.begin())];
-    };
+
     void renumber(){
         std::vector<K::Point_3> kd_tree_points;
         DSU dsu;
+        map<K2::Point_3,int>mp;
+
         for(int i=0;i<cdt_result.size();i++){
             for(int j=0;j<3;j++){
-                kd_tree_points.emplace_back(CGAL::to_double(cdt_result[i][j].x()),
-                                            CGAL::to_double(cdt_result[i][j].y()),
-                                            CGAL::to_double(cdt_result[i][j].z())
-                );
+                if(!mp.count(cdt_result[i][j])){
+                    int size = mp.size();
+                    mp[cdt_result[i][j]] = size;
+                    renumber_bound_face_vertex.push_back(cdt_result[i][j]);
+                }
             }
         }
-
-        tree = new Kd_tree(kd_tree_points.begin(),kd_tree_points.end());
-        for(int i=0;i<kd_tree_points.size();i++){
-            std::vector<Point> result;
-            Fuzzy_circle fs(kd_tree_points[i], myeps);
-            tree->search(std::back_inserter(result), fs);
-            for (const Point& p : result) {
-                dsu.join(unique_hash_value(kd_tree_points[i]),unique_hash_value(p));
-            }
-        }
-        int encode_cnt = 0;
-        encode_map = dsu.encode(encode_cnt);
-        renumber_bound_face_vertex.resize(encode_cnt);
-        encode_vec.resize(encode_cnt);
-        encode_num.resize(encode_cnt);
-        renumber_bound_face_vertex_global_id.resize(encode_cnt);
-        for(int i=0;i<encode_cnt;i++){
-            encode_vec[i] = K::Vector_3(0,0,0);
-            encode_num[i] = 0;
-        }
-
-        for(int i=0;i<kd_tree_points.size();i++){
-            //  cout <<"getbelong:" <<i<<" "<< encode_map[CGAL::hash_value(kd_tree_points[i])] <<endl;
-            encode_vec[encode_map[unique_hash_value(kd_tree_points[i])]] += kd_tree_points[i] - K::Point_3 (0,0,0);
-            encode_num[encode_map[unique_hash_value(kd_tree_points[i])]]++;
-        }
+        renumber_bound_face_vertex_global_id.resize(renumber_bound_face_vertex.size());
 
 
-        for(int i=0;i<encode_cnt;i++){
-            K::Point_3 avg = K::Point_3 (0,0,0) + encode_vec[i] / encode_num[i];
-            renumber_bound_face_vertex[i] = K2::Point_3(avg.x(),avg.y(),avg.z());
-        }
+
         //重构搜索要用原来的点
         for(int i=0;i<cdt_result.size();i++){
 
-            K::Point_3 v0(CGAL::to_double(cdt_result[i][0].x()),CGAL::to_double(cdt_result[i][0].y()),CGAL::to_double(cdt_result[i][0].z()));
-            K::Point_3 v1(CGAL::to_double(cdt_result[i][1].x()),CGAL::to_double(cdt_result[i][1].y()),CGAL::to_double(cdt_result[i][1].z()));
-            K::Point_3 v2(CGAL::to_double(cdt_result[i][2].x()),CGAL::to_double(cdt_result[i][2].y()),CGAL::to_double(cdt_result[i][2].z()));
-            int id0 = get_kdtree_id(v0);
-            int id1 = get_kdtree_id(v1);
-            int id2 = get_kdtree_id(v2);
+            int id0 = mp[cdt_result[i][0]];
+            int id1 = mp[cdt_result[i][1]];
+            int id2 = mp[cdt_result[i][2]];
             if(set<int>{id0,id1,id2}.size() != 3)continue;
             renumber_bound_face_id.push_back({id0,id1,id2});
             renumber_bound_face_cross_field_list.push_back(bound_face_cross_field_list[cdt_result_cross_field_list_id[i]]);

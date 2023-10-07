@@ -18,8 +18,8 @@ DEFINE_int32(t, 12, "thread num please set this value depend the cpu of you devi
 DEFINE_string(f, "", "file name, it must be like *.obj2");
 DEFINE_int32(i, 1,
              "This arg is a integer means running mode which value can be chose in 1,2. \n 1 is offsetting to the outside of the mesh; 2 is offsetting to the inside of the mesh.");
-DEFINE_double(e, 1e-4,
-              "This arg is a double means the eps. When the distance of two points is smaller than eps, we will regard these two point as coinciding. ");
+//DEFINE_double(e, 1e-4,
+//              "This arg is a double means the eps. When the distance of two points is smaller than eps, we will regard these two point as coinciding. ");
 int result_mode;
 string input_filename;
 
@@ -35,7 +35,7 @@ void flag_parser() {
     max_distance_limit = FLAGS_l;
     thread_num = FLAGS_t;
     input_filename = FLAGS_f;
-    myeps = FLAGS_e;
+    myeps = 0;
 
 }
 
