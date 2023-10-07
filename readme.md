@@ -31,7 +31,9 @@ This code can be built in Linux and MacOS.
 
 [Gflags](https://github.com/gflags/gflags)
 
-[Vcglib](https://github.com/cnr-isti-vclab/vcglib)
+[TetWild](https://github.com/Yixin-Hu/TetWild)
+
+[fTetWild]( https://github.com/wildmeshing/fTetWild.git)
 
 ## 🛠️ Build
 
