@@ -4,7 +4,7 @@ This project is a demo to achieve to algorithm of PFPOffset.
 
 [![c++20](https://img.shields.io/badge/standard-C++20-blue.svg?style=flat&logo=c%2B%2B)](https://isocpp.org)
 
-![BuildExamplesLinux](https://github.com/rainbowwing/Thickening2/workflows/CMake/badge.svg)
+![BuildExamplesLinux](https://github.com/rainbowwing/PFPOffset/workflows/CMake/badge.svg)
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-orange.svg)](https://github.com/rainbowwing/Thickening2/blob/main/LICENSE)
 ## 📚 Documentation
@@ -63,8 +63,8 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
 cd ../..
-git clone git@github.com:rainbowwing/Thickening2.git
-cd Thickening2
+git clone git@github.com:rainbowwing/PFPOffset.git
+cd PFPOffset
 cd TetWild
 mkdir build
 cd build
@@ -108,8 +108,8 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
 cd ../..
-git clone git@github.com:rainbowwing/Thickening2.git
-cd Thickening2
+git clone git@github.com:rainbowwing/PFPOffset.git
+cd PFPOffset
 cd TetWild
 mkdir build
 cd build
@@ -203,4 +203,4 @@ So it can be solved by re-running at present.
 ## 📝 License
 Materials in this repository are distributed under the following license:
 
-> All software is licensed under the BSD 3-Clause License. See [LICENSE](https://github.com/rainbowwing/Thickening2/blob/main/LICENSE) file for details.
+> All software is licensed under the BSD 3-Clause License. See [LICENSE](https://github.com/rainbowwing/PFPOffset/blob/main/LICENSE) file for details.
