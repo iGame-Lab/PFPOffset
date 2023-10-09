@@ -60,8 +60,6 @@
 #include "flag_parser.h"
 #include "merge_initial.h"
 
-
-
 using namespace std;
 int main(int argc, char* argv[]) {
 
@@ -72,20 +70,15 @@ int main(int argc, char* argv[]) {
 
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_tmp.obj").c_str(), "w");
+    FILE *file14 = fopen( (input_filename + "_coveragefield.obj").c_str(), "w");
 
-    FILE *file12 = fopen( (input_filename + "_12.obj").c_str(), "w");
-    FILE *file14 = fopen( (input_filename + "_14.obj").c_str(), "w");
 
-    default_move = 0.01;
-    grid_len = 2.5;
-
-    //3.59
     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
     mesh->initBBox();
     mesh->build_fast();
     auto start_clock = std::chrono::high_resolution_clock::now();
     cout <<"mesh->build_fast() succ" << endl;
-    double default_move_dist = 0.05;
+    //double default_move_dist = 0.05;
     double x_len = (mesh->BBoxMax - mesh->BBoxMin).x();
     double y_len = (mesh->BBoxMax - mesh->BBoxMin).y();
     double z_len = (mesh->BBoxMax - mesh->BBoxMin).z();
@@ -104,9 +97,11 @@ int main(int argc, char* argv[]) {
             sum += sqrt(minx*maxx);
 
         }
-        default_move_dist = sum/mesh->FaceSize();
-        cout << default_move_dist<<endl;
-
+        if(default_move <= 0) {
+            default_move= sum / mesh->FaceSize() * 1.5 / 4;
+            cout <<"default_move_dist:" <<default_move << endl;
+            //exit(0);
+        }
         double min_len = min(min(x_len,y_len),z_len);
         double rate = x_len/min_len*y_len/min_len*z_len/min_len;
 
@@ -121,8 +116,10 @@ int main(int argc, char* argv[]) {
         auto v1 = mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)];
         auto v2 = mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)];
         auto tmp = (v0 + v1 + v2)/3;
-        mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = ((tmp.x() -  mesh->BBoxMin.x())/x_len*1.5 +0.5) * default_move_dist;
-
+        if(mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist <= 0){// deal Illegal input
+            mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = default_move;
+        }
+        cout <<"facei "<<  mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist<<endl;
         // mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist =  default_move_dist;
     }
 
@@ -191,9 +188,6 @@ int main(int argc, char* argv[]) {
 //            break;
 //        }
     }
-
-    // exit(0);
-
 
     std::vector <std::shared_ptr<std::thread> > one_ring_select_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {
@@ -298,28 +292,6 @@ int main(int argc, char* argv[]) {
 
     for(int i=0;i<thread_num;i++)
         one_ring_select_thread_pool[i]->join();
-
-//    int f12id = 1;
-//    for(int i=0;i<mesh->FaceSize();i++) {
-//        for (int j = 0; j < coverage_field_list[i].bound_face_id.size(); j++) {
-//            K::Triangle_3 tri_this(
-//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][0]],
-//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][1]],
-//                    coverage_field_list[i].bound_face_vertex_inexact[coverage_field_list[i].bound_face_id[j][2]]);
-//            cout<<i<<" "<<j<<" "<<coverage_field_list[i].bound_face_useful[j] <<endl;
-//            if (coverage_field_list[i].bound_face_useful[j] > 0) {
-//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(0).x(), tri_this.vertex(0).y(),
-//                        tri_this.vertex(0).z());
-//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(1).x(), tri_this.vertex(1).y(),
-//                        tri_this.vertex(1).z());
-//                fprintf(file12, "v %lf %lf %lf\n", tri_this.vertex(2).x(), tri_this.vertex(2).y(),
-//                        tri_this.vertex(2).z());
-//                fprintf(file12, "f %d %d %d\n", f12id, f12id + 1, f12id + 2);
-//                f12id+=3;
-//            }
-//        }
-//    }
-
 
     for(auto  each_container_face : container_grid_face){
         each_grid_face_list.push_back({(size_t)each_container_face[0],(size_t)each_container_face[1],(size_t)each_container_face[2]});
@@ -435,7 +407,6 @@ int main(int argc, char* argv[]) {
 
     for(int i=0;i<thread_num;i++)
         bfs_thread_pool[i]->join();
-
     cout <<"bfs end \n" << endl;
 
     auto frame_grid_mp_bk =  frame_grid_mp;
@@ -450,7 +421,6 @@ int main(int argc, char* argv[]) {
             // }
         }
     }
-
 
     std::vector <std::shared_ptr<std::thread> > each_grid_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) { //todo 存在偶发性多线程异常
@@ -558,8 +528,6 @@ int main(int argc, char* argv[]) {
                         coverage_field_list[field_id].bound_face_cross_field_list[bound_face_id].push_back(each_grid->first);
                     }
                 }
-
-
             }
             cout << "each_grid_cnt end thread num:"<< now_id<<endl;
         }, i);
@@ -567,13 +535,6 @@ int main(int argc, char* argv[]) {
 
     for(int i=0;i<thread_num;i++)
         each_grid_thread_pool[i]->join();
-
-
-
-    // 这里修正每个面
-
-    // 应该先做点的序号合并
-
 
     for (auto each_grid= frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
         //if(!(each_grid->first.x == 26 && each_grid->first.y == 28 && each_grid->first.z == 9  ))continue;
@@ -596,73 +557,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-//    {
-//        FILE *file20 = fopen( (input_filename + "_20.obj").c_str(), "w");
-//        FILE *file21 = fopen( (input_filename + "_21.obj").c_str(), "w");
-//        FILE *file22 = fopen( (input_filename + "_22.obj").c_str(), "w");
-//        for(int i=0;i< coverage_field_list[292].bound_face_cutting_point.size();i++){ // 每一个面
-//            for(int j=0;j<coverage_field_list[292].bound_face_cutting_point[i].size();j++){
-//                fprintf(file20,"v %lf %lf %lf\n",CGAL::to_double(coverage_field_list[292].bound_face_cutting_point[i][j].x()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_point[i][j].y()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_point[i][j].z())
-//                        );
-//            }
-//        }
-//        int f21id = 1;
-//        for(int i=0;i< coverage_field_list[292].bound_face_cutting_segment.size();i++){ // 每一个面
-//            for(int j=0;j<coverage_field_list[292].bound_face_cutting_segment[i].size();j++){
-//                fprintf(file21,"v %lf %lf %lf\n",CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(0).x()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(0).y()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(0).z())
-//                );
-//                fprintf(file21,"v %lf %lf %lf\n",CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(1).x()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(1).y()),
-//                        CGAL::to_double(coverage_field_list[292].bound_face_cutting_segment[i][j].vertex(1).z())
-//                );
-//                fprintf(file21,"l %d %d\n",f21id,f21id+1);
-//                f21id += 2;
-//            }
-//        }
-//        int f22id = 1;
-//        for(int i=0;i< coverage_field_list[292].bound_face_id.size();i++){ // 每一个面
-//            K::Point_3 v0 = coverage_field_list[292].bound_face_vertex_inexact[coverage_field_list[292].bound_face_id[i][0]];
-//            K::Point_3 v1 = coverage_field_list[292].bound_face_vertex_inexact[coverage_field_list[292].bound_face_id[i][1]];
-//            K::Point_3 v2 = coverage_field_list[292].bound_face_vertex_inexact[coverage_field_list[292].bound_face_id[i][2]];
-//            fprintf(file22,"v %lf %lf %lf\n",v0.x(),v0.y(),v0.z());
-//            fprintf(file22,"v %lf %lf %lf\n",v1.x(),v1.y(),v1.z());
-//            fprintf(file22,"v %lf %lf %lf\n",v2.x(),v2.y(),v2.z());
-//            fprintf(file22,"f %d %d %d\n",f22id,f22id+1,f22id+2);
-//            f22id += 3;
-//        }
-//    }
-//
-//    exit(0);
-//    for (int field_id = 0; field_id < fsize; field_id++) {
-//
-//
-//        coverage_field_list[field_id].field_id = 1;
-//        coverage_field_list[field_id].do_cdt();
-//        cout <<"field_id:" << field_id <<" "<<coverage_field_list[field_id].bound_face_id.size() << endl;
-//        int tt0 = 0;
-//        int tt1 = 0;
-//        int tt2 = 0;
-//
-//        for(int i=0;i< coverage_field_list[field_id].bound_face_cutting_point.size();i++){
-//            tt0 += coverage_field_list[field_id].bound_face_cutting_point[i].size();
-//        }
-//        for(int i=0;i< coverage_field_list[field_id].bound_face_cutting_segment.size();i++){
-//            tt1 += coverage_field_list[field_id].bound_face_cutting_segment[i].size();
-//        }
-//        for(int i=0;i< coverage_field_list[field_id].bound_face_cross_field_list.size();i++){
-//            tt2 += coverage_field_list[field_id].bound_face_cross_field_list[i].size();
-//        }
-//        cout <<  tt0 <<" "<< tt1 <<" "<<tt2<< endl;
-//
-//        coverage_field_list[field_id].renumber();
-//
-//    }
-//
-//    exit(0);
 
     std::vector <std::shared_ptr<std::thread> > field_vertex_numbering_thread_pool(thread_num);
     std::atomic<int>global_vertex_id_sum;
@@ -694,49 +588,7 @@ int main(int argc, char* argv[]) {
         }
         global_cnt += coverage_field_list[field_id].renumber_bound_face_vertex.size();
     }
-//    cout <<"start kd tree join"<<endl;
-//    std::vector<K::Point_3> kd_tree_points;
-//    map<unsigned long long,int> global_kd_tree_mp;
-//    for(int i=0;i<global_vertex_list.size();i++){
-//        K::Point_3 p = PointK2_Point(global_vertex_list[i]);
-//        unsigned long long id = unique_hash_value(p);
-//        global_kd_tree_mp[id] = i;
-//        kd_tree_points.push_back(p);
-//    }
-//    DSUMultiThread dsu_multi_thread((int)kd_tree_points.size());
-//    std::vector <std::shared_ptr<std::thread> > global_dsu_thread_pool(thread_num);
-//    dsu_multi_thread.run();
-//    for(int i=0;i<thread_num;i++) {
-//        global_dsu_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
-//            Kd_tree global_kd_tree(kd_tree_points.begin(),kd_tree_points.end());
-//            for(int i=0;i<kd_tree_points.size();i++){
-//                if (i % thread_num != now_id)continue;
-//                std::vector<K::Point_3> result;
-//                Fuzzy_circle fs(kd_tree_points[i], myeps);
-//                global_kd_tree.search(std::back_inserter(result), fs);
-//                for (const Point& p : result) {
-//                    dsu_multi_thread.join(i,global_kd_tree_mp[unique_hash_value(p)]);
-//                    //dsu.join(CGAL::hash_value(kd_tree_points[i]),hash_value(p));
-//                }
-//            }
-//        },i);
-//    }
-//    for(int i=0;i<thread_num;i++)
-//        global_dsu_thread_pool[i]->join();
-//
-//    cout <<"wait dsu_multi_thread stop"<< endl;
-//    dsu_multi_thread.stop();
-//    cout <<"wait dsu_multi_thread.join_thread->join()"<< endl;
-//    dsu_multi_thread.join_thread->join();
-//
-//   // exit(0);
-//    cout <<"global_vertex_id_sum:" << global_vertex_id_sum <<endl;
-//    for (int field_id = 0; field_id < fsize; field_id++) {
-//        for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_vertex_global_id.size(); i++) {
-//
-//            //coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i] = dsu_multi_thread.find_root(coverage_field_list[field_id].renumber_bound_face_vertex_global_id[i]);
-//        }
-//    }
+
     int global_face_cnt = 0;
     for (int field_id = 0; field_id < fsize; field_id++) {
         for (int i = 0; i < coverage_field_list[field_id].renumber_bound_face_id.size(); i++) {
@@ -862,9 +714,6 @@ int main(int argc, char* argv[]) {
                             global_face_list[global_face_id].special_field_id.insert(which_field);
                         }
                     }
-                    // 参考3164行的写法写
-                    // 注意事项：1. 建立射线的时候要所有面
-                    // 注意事项：2。可能产生重复
                 }
 
             }
@@ -875,37 +724,6 @@ int main(int argc, char* argv[]) {
     //exit(0);
 
     cout <<"start generate"<<endl;
-    auto each_grid = frame_grid_mp.begin();
-    FILE *file22 = fopen( (input_filename + "_22.obj").c_str(), "w");
-    int f22id = 1;
-    for(int i=0;i<each_grid->second.field_list.size();i++) {
-        int field_id = each_grid->second.field_list[i];
-        //FILE *file21 = fopen( (input_filename + "_21.obj").c_str(), "w");
-
-        for(int j=0;j<coverage_field_list[field_id].renumber_bound_face_global_id.size();j++){
-            int fid_global = coverage_field_list[field_id].renumber_bound_face_global_id[j];
-            if(global_face_list[fid_global].useful >0) {
-                K2::Point_3 v0 = global_vertex_list[global_face_list[fid_global].idx0];
-                K2::Point_3 v1 = global_vertex_list[global_face_list[fid_global].idx1];
-                K2::Point_3 v2 = global_vertex_list[global_face_list[fid_global].idx2];
-                K2::Triangle_3 tri(v0, v1, v2);
-                fprintf(file22, "v %lf %lf %lf\n", CGAL::to_double(v0.x()), CGAL::to_double(v0.y()),
-                        CGAL::to_double(v0.z()));
-                fprintf(file22, "v %lf %lf %lf\n", CGAL::to_double(v1.x()), CGAL::to_double(v1.y()),
-                        CGAL::to_double(v1.z()));
-                fprintf(file22, "v %lf %lf %lf\n", CGAL::to_double(v2.x()), CGAL::to_double(v2.y()),
-                        CGAL::to_double(v2.z()));
-                fprintf(file22, "f %d %d %d\n", f22id, f22id + 1, f22id + 2);
-                f22id += 3;
-            }
-        }
-    }
-    cout <<"f22id:" <<f22id << endl;
-    //exit(0);
-
-
-
-
     std::vector <std::shared_ptr<std::thread> > global_face_final_generate_thread_pool(thread_num);
     atomic<int> flag = 0;
     for(int i=0;i<thread_num;i++) {
@@ -1024,30 +842,6 @@ int main(int argc, char* argv[]) {
     }
     for(int i=0;i<thread_num;i++)
         special_case_detect[i]->join();
-    FILE *file21 = fopen( (input_filename + "_21.obj").c_str(), "w");
-    int f21id = 1;
-    for(int i=0;i<each_grid->second.field_list.size();i++) {
-        int field_id = each_grid->second.field_list[i];
-        //FILE *file22 = fopen( (input_filename + "_22.obj").c_str(), "w");
-        for(int j=0;j<coverage_field_list[field_id].renumber_bound_face_global_id.size();j++){
-            int fid_global = coverage_field_list[field_id].renumber_bound_face_global_id[j];
-            if(global_face_list[fid_global].useful >0) {
-                K2::Point_3 v0 = global_vertex_list[global_face_list[fid_global].idx0];
-                K2::Point_3 v1 = global_vertex_list[global_face_list[fid_global].idx1];
-                K2::Point_3 v2 = global_vertex_list[global_face_list[fid_global].idx2];
-                K2::Triangle_3 tri(v0, v1, v2);
-                fprintf(file21, "v %lf %lf %lf\n", CGAL::to_double(v0.x()), CGAL::to_double(v0.y()),
-                        CGAL::to_double(v0.z()));
-                fprintf(file21, "v %lf %lf %lf\n", CGAL::to_double(v1.x()), CGAL::to_double(v1.y()),
-                        CGAL::to_double(v1.z()));
-                fprintf(file21, "v %lf %lf %lf\n", CGAL::to_double(v2.x()), CGAL::to_double(v2.y()),
-                        CGAL::to_double(v2.z()));
-                fprintf(file21, "f %d %d %d\n", f21id, f21id + 1, f21id + 2);
-                f21id += 3;
-            }
-        }
-    }
-    //exit(0);
 
     for(int i=0;i<global_vertex_list.size();i++){
         fprintf(file6,"v %lf %lf %lf\n",CGAL::to_double(global_vertex_list[i].x()),
@@ -1082,16 +876,22 @@ int main(int argc, char* argv[]) {
 
     string new_name = (input_filename + "_tmp.obj");
     string cmd;
-
+    string tetwild_ex = "";
+    if(tetwild_l>0){
+        tetwild_ex += " -l "+to_string(tetwild_l) +" ";
+    }
+    if(tetwild_e>0){
+        tetwild_ex += " -e "+to_string(tetwild_e) +" ";
+    }
     //exit(0);
     if(1) {
         cmd =
-                ("../fTetWild/build/FloatTetwild_bin -i" + (input_filename + "_tmp.obj"))+
+                ("../fTetWild/build/FloatTetwild_bin -i" + (input_filename + "_tmp.obj"))+ tetwild_ex+
                 (" && mv " + new_name + "__sf.obj " + input_filename + "_final_result.obj");
     }
     else{
         for(int i=0;i<4;i++)new_name.pop_back();
-        cmd = ("../TetWild/build/Tetwild " + (input_filename + "_tmp.obj") ) +
+        cmd = ("../TetWild/build/Tetwild " + (input_filename + "_tmp.obj") ) + tetwild_ex +
               (" && mv "+new_name+"__sf.obj " + input_filename+"_final_result.obj" );
 
     }
@@ -1102,10 +902,16 @@ int main(int argc, char* argv[]) {
     system(cmd.c_str());
     auto end2_clock = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff2 = end2_clock - end_clock;
-    std::cout << input_filename<<"\t"<<default_move_dist/2<<"\t"<< default_move_dist*2<< "\t" << diff.count() <<"\t"<<diff2.count()<<"\t";
+    std::cout << input_filename<< "\t" << diff.count() <<"\t"<<diff2.count()<<"\t";
     auto mesh00 = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename + "_final_result.obj"));
+    cout <<"final result is saved in "<< input_filename + "_final_result.obj"<<endl;
     cout << mesh00->VertexSize() <<"\t"<< mesh00->FaceSize() << "\t"<< mesh->VertexSize()<<"\t"<<mesh->FaceSize()<<endl;
-
+    stringstream time_use;
+    FILE *file_ans = fopen(  (input_filename + "_time.txt").c_str(), "w");
+    time_use  << input_filename<< "\t" << diff.count() <<"\t"<<diff2.count()<<"\t";
+    time_use << mesh00->VertexSize() <<"\t"<< mesh00->FaceSize() << "\t"<< mesh->VertexSize()<<"\t"<<mesh->FaceSize()<<endl;
+    fputs(time_use.str().c_str(),file_ans);
+    fclose(file_ans);
     return 0;
 }
 // 1 2 3 4 5 6

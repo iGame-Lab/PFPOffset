@@ -1,6 +1,6 @@
-# PFP-Thickening
+# PFP-Offset
 
-This project is a demo to achieve to algorithm of PFP-Thickening.
+This project is a demo to achieve to algorithm of PFPOffset.
 
 [![c++20](https://img.shields.io/badge/standard-C++20-blue.svg?style=flat&logo=c%2B%2B)](https://isocpp.org)
 
@@ -9,8 +9,7 @@ This project is a demo to achieve to algorithm of PFP-Thickening.
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-orange.svg)](https://github.com/rainbowwing/Thickening2/blob/main/LICENSE)
 ## 📚 Documentation
 
-This code is a demo of the paper [PFP-Thickening: a Parallel Feature-preserving Mesh Offsetting Approach
-to Create Variable-thickness Solid for Additive manufacturing]().
+This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming]().
 
 It can be use to calculate the offset result of a mesh.
 
@@ -63,9 +62,21 @@ cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
-git clone git@github.com:TsukiMiyabiLake/Thickening2.git
+cd ../..
+git clone git@github.com:rainbowwing/Thickening2.git
 cd Thickening2
-#git clone https://github.com/cnr-isti-vclab/vcglib # add the submodule vcglib
+cd TetWild
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+cd ../..
+cd fTetWild
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+cd ../..
 mkdir build
 cmake ../ -DCMAKE_BUILD_TYPE=Release
 make
@@ -97,7 +108,7 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ../
 make
 make install
 cd ../..
-git clone git@github.com:TsukiMiyabiLake/Thickening2.git
+git clone git@github.com:rainbowwing/Thickening2.git
 cd Thickening2
 cd TetWild
 mkdir build
@@ -121,15 +132,9 @@ make
 
 ```bash
 
-USAGE: Thicken -f file_name [options]              file_name is *.obj or *.obj2      
-
+USAGE: PFPOffset -f file_name [options]              file_name is *.obj or *.obj2      
 options:
-  -m={1|2}        representing result mode which value can be chose in 1 and 2. 
-                    mode 1 get the result with do remeshing;
-                    mode 2 get the result without  do remeshing;
 
-  -d=<num>          this number is a double represent the expect length of each facet in running invariable thickening.
-                    please do not set is very large, because the program will cost large time. 
                     
   -l=<num>          This number is a double.
                     which value indicates how many times the maximum offset distance is the ideal offset distance.
@@ -146,20 +151,25 @@ options:
                     2 is offsetting to the inside of the mesh.
                     
 
+  -d=<num>          The absolute distance for offset. If you want to perform variable offset, please do not use this parameter, but use the obj2 file.
+
+  -L=<num>           set tetwild argument -l;
+  -E=<num>           set tetwild argument -e;
+
+
 
                     
-
 example:
-./Thicken  -f ../data/mechanical04.obj -m=1 -i=2 -t=8 -d=0.6        
-./Thicken  -f ../data/tet.obj2 -m=1 -i=1 -t=8 
+./PFPOffset  -f ../data/mechanical04.obj -i=2 -t=8       
+./PFPOffset  -f ../data/tet.obj2 -i=1 -t=8 
 ```
 
 
 ### The input file format
 
-If you want to do invariable thicken. You can use the obj file than set the expect distance by setting the argument -d.
+If you want to do invariable offset. You can use the obj file than set the expect distance by setting the argument -d.
 
-If you want to do variable thicken, you should use the obj2 format.
+If you want to do variable offset, you should use the obj2 format.
 
 obj2 format which is same as *.obj. But in the end line of each face, it needs to add a double representing the ideal offsetting value.
 
@@ -181,7 +191,7 @@ f 2 3 4 0.02
 
 cgal version must be larger than 5.5
 
-If you want to do not use this program for thickening with long offset distance, this program will not have a fast speed.
+If you want to do not use this program for Offset with long offset distance, this program will not have a fast speed.
 You need to wait a lot of time before the program finishes running.
 
 ### KNOWN ISSUES:

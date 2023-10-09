@@ -4,7 +4,7 @@
 
 #ifndef THICKEN2_OBJ_INPUT_H
 #define THICKEN2_OBJ_INPUT_H
-double default_move = 0.1;
+double default_move = -1;
 int thread_num = 12;
 double max_distance_limit = 1.30;
 double min_distance_limit = 1.0;
