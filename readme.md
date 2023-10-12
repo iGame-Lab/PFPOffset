@@ -164,7 +164,7 @@ options:
 
                     
 example:
-./PFPOffset  -f ../data/mechanical04.obj -i=2 -t=8       
+./PFPOffset  -f ../data/deckel.obj -i=2 -t=8  -d=0.38    
 ./PFPOffset  -f ../data/tet.obj2 -i=1 -t=8 
 ```
 
