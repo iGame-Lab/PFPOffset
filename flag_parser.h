@@ -7,7 +7,7 @@
 #include <gflags/gflags.h>
 
 DEFINE_int32(m, 1,
-             "This arg is a integer means result mode which value can be chose in 1,2,3. \n mode 1 is to remeshing after executing the algorithm\n; mode 2 is cancel the step of remeshing.");
+             "This arg is a integer means result mode which value can be chose in 1,2. \n mode 1 is use ftetwild. \n mode 2 is use tetwild.");
 
 DEFINE_double(l, 1.30,
               "This arg is a double which value indicates how many times the maximum offset distance is the ideal offset distance.");
@@ -15,7 +15,7 @@ DEFINE_double(l, 1.30,
 DEFINE_double(s, 1.0,
               "This arg is a double which value indicates how many times the minimum offset distance is the ideal offset distance.");
 DEFINE_int32(t, 12, "thread num please set this value depend the cpu of you device.");
-DEFINE_string(f, "", "file name, it must be like *.obj2");
+DEFINE_string(f, "", "file name, it must be like *.obj2 or *.obj");
 DEFINE_int32(i, 1,
              "This arg is a integer means running mode which value can be chose in 1,2. \n 1 is offsetting to the outside of the mesh; 2 is offsetting to the inside of the mesh.");
 

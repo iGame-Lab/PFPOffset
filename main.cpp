@@ -884,7 +884,7 @@ int main(int argc, char* argv[]) {
         tetwild_ex += " -e "+to_string(tetwild_e) +" ";
     }
     //exit(0);
-    if(1) {
+    if(result_mode == 1) {
         cmd =
                 ("../fTetWild/build/FloatTetwild_bin -i" + (input_filename + "_tmp.obj"))+ tetwild_ex+
                 (" && mv " + new_name + "__sf.obj " + input_filename + "_final_result.obj");

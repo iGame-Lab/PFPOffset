@@ -134,7 +134,8 @@ make
 
 USAGE: PFPOffset -f file_name [options]              file_name is *.obj or *.obj2      
 options:
-
+  -m={1|2}        mode 1 get the result with from ftetwild;
+                    mode 2 get the result without from tetwild;
                     
   -l=<num>          This number is a double.
                     which value indicates how many times the maximum offset distance is the ideal offset distance.
