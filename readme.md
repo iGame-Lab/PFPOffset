@@ -134,12 +134,13 @@ make
 
 USAGE: PFPOffset -f file_name [options]              file_name is *.obj or *.obj2      
 options:
-  -m={1|2}        mode 1 get the result with from ftetwild;
+  -m={1|2}          mode 1 get the result with from ftetwild;
                     mode 2 get the result without from tetwild;
+                    default is 1
                     
   -l=<num>          This number is a double.
                     which value indicates how many times the maximum offset distance is the ideal offset distance.
-                    You can set it is 1.5 or do not set it.
+                    You can set it is 1.3 or do not set it. 
                     
   -s=<num>          This number is a double.
                     which value indicates how many times the minimum offset distance is the ideal offset distance.
@@ -154,9 +155,11 @@ options:
 
   -d=<num>          The absolute distance for offset. If you want to perform variable offset, please do not use this parameter, but use the obj2 file.
 
-  -L=<num>           set tetwild argument -l;
+  -L=<num>           set tetwild argument -l; 
+                     This parameter is used to mitigate the significant deviation in the generated mesh size caused by tetwild\'s computations. Specific details can be found in the tetwild documentation.
+  
   -E=<num>           set tetwild argument -e;
-
+                     Functions the same as the '-l' option. Specific details can be found in the tetwild documentation.
 
 
                     
