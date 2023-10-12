@@ -13,12 +13,16 @@ This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Of
 
 It can be use to calculate the offset result of a mesh.
 
-This demo only have the code which working in manifold meshes.
+This demo only have the code which working in watertight and manifold meshes.
+
+If the offset distance is too long, our algorithm will be slower.
 
 Use the mesh kernel which built by [intelligent visual modeling & simulation lab](https://igame.hdu.edu.cn) in Hangzhou
 Dianzi University
 
 This code can be built in Linux and MacOS.
+
+
 
 ## 📄 Dependencies
 
@@ -154,7 +158,8 @@ options:
                     
 
   -d=<num>          The absolute distance for offset. If you want to perform variable offset, please do not use this parameter, but use the obj2 file.
-
+                    Please note that absolute distance must be used.
+          
   -L=<num>           set tetwild argument -l; 
                      This parameter is used to mitigate the significant deviation in the generated mesh size caused by tetwild\'s computations. Specific details can be found in the tetwild documentation.
   
@@ -166,6 +171,8 @@ options:
 example:
 ./PFPOffset  -f ../data/deckel.obj -i=2 -t=8  -d=0.38    
 ./PFPOffset  -f ../data/tet.obj2 -i=1 -t=8 
+./PFPOffset  -f ./BendTube.obj  -i=1 -t=8 -d=5.27888
+
 ```
 
 
