@@ -67,13 +67,15 @@ int main(int argc, char* argv[]) {
     flag_parser();
 
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
-
+    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
+    input_filename = input_filename.substr(0,input_filename.size()-4);
+    input_filename+="_"+ to_string(running_mode);
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_tmp.obj").c_str(), "w");
     FILE *file14 = fopen( (input_filename + "_coveragefield.obj").c_str(), "w");
 
 
-    mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
+
     mesh->initBBox();
     mesh->build_fast();
     auto start_clock = std::chrono::high_resolution_clock::now();
@@ -94,11 +96,11 @@ int main(int argc, char* argv[]) {
                                        (mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(2)] - mesh->fast_iGameVertex[mesh->fast_iGameFace[i].vh(0)]).norm()
             }.rbegin();
 
-            sum += sqrt(minx*maxx);
+            sum += min(minx,maxx);
 
         }
         if(default_move <= 0) {
-            default_move= sum / mesh->FaceSize() * 1.5 / 4;
+            default_move = sum / mesh->FaceSize();
             cout <<"default_move_dist:" <<default_move << endl;
             //exit(0);
         }
@@ -111,6 +113,15 @@ int main(int argc, char* argv[]) {
         cout << "grid_len "<< grid_len<<endl;
 
     }
+//    FILE * file50 = fopen((input_filename.substr(0,input_filename.size()-4) + "_offset.obj2").c_str(),"w");
+//
+//    fprintf(file50,"#download from quad mesh, add offset distance of every by PFPOffset.\n");
+//    for (int i = 0; i < mesh->VertexSize(); i++) {
+//        //cout << mesh->fast_iGameVertex[i].x() <<" "<< mesh->fast_iGameVertex[i].y() <<" "<<  mesh->fast_iGameVertex[i].z()<<endl;
+//        fprintf(file50,"v %.7lf %.7lf %.7lf\n",mesh->fast_iGameVertex[i].x(),
+//                mesh->fast_iGameVertex[i].y(),
+//                mesh->fast_iGameVertex[i].z());
+//    }
     for (int i = 0; i < mesh->FaceSize(); i++) {
         auto v0 = mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0)];
         auto v1 = mesh->fast_iGameVertex[mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)];
@@ -120,10 +131,17 @@ int main(int argc, char* argv[]) {
             mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = default_move;
         }
         cout <<"facei "<<  mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist<<endl;
+//        fprintf(file50,"f %d %d %d %.7lf\n",mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0)+1,
+//                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)+1,
+//                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)+1,
+//                ((tmp.x() - mesh->BBoxMin.x())/(mesh->BBoxMax.x() - mesh->BBoxMin.x())/2+0.5)*default_move
+//                );
+
         // mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist =  default_move_dist;
+        //FILE *file14 = fopen( (input_filename + "_coveragefield.obj").c_str(), "w");
     }
 
-
+  //  exit(0);
 
 
     field_move_vertex.resize(mesh->VertexSize());
