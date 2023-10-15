@@ -903,6 +903,7 @@ int main(int argc, char* argv[]) {
     }
     //exit(0);
     if(result_mode == 1) {
+        tetwild_ex+= "   --manifold-surface     ";
         cmd =
                 ("../fTetWild/build/FloatTetwild_bin -i" + (input_filename + "_tmp.obj"))+ tetwild_ex+
                 (" && mv " + new_name + "__sf.obj " + input_filename + "_final_result.obj");
