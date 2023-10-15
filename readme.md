@@ -18,7 +18,7 @@ TIMON RABCZUK, Institute of Structural Mechanics, Germany
 
 Corresponding author: gxu@hdu.edu.cn (Gang XU)
 
-first author & code implementer: hyc@hdu.edu.cn (HongYi CAO)
+First author & Code implementer: hyc@hdu.edu.cn (HongYi CAO)
 
 
 
@@ -223,6 +223,9 @@ cgal version must be larger than 5.5
 
 If you want to do not use this program for Offset with long offset distance, this program will not have a fast speed.
 You need to wait a lot of time before the program finishes running.
+
+if you see many warning of : "[OsqpEigen::Solver::solve] The solution is unfeasible." don't care about it, we already have logic to resolve it. So you can ignore this information.
+
 
 ### KNOWN ISSUES:
 
