@@ -21,7 +21,13 @@ Use the mesh kernel which built by [intelligent visual modeling & simulation lab
 Dianzi University
 
 This code can be built in Linux and MacOS.
-
+![Example Image](picture/start.png)
+![Example Image](picture/finalcomparein.png)
+![Example Image](picture/finalcompareout.png)
+showcases of result of dp:
+![Example Image](picture/s2023s41.png)
+this figure show that our method fast in short distance but will be slow in large distance:
+![Example Image](picture/octspeed.png)
 
 
 ## 📄 Dependencies

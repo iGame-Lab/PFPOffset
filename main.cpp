@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
     cout <<"CGAL_RELEASE_DATE:" << CGAL_RELEASE_DATE << endl;
     mesh = make_shared<MeshKernel::SurfaceMesh>(ReadObjFile(input_filename)); grid_len = 0.1;
     input_filename = input_filename.substr(0,input_filename.size()-4);
-    input_filename+="_"+ to_string(running_mode);
+    input_filename+= string("_") + (running_mode==1?"offset_outward":"offset_inward");
     FILE *file11 = fopen( (input_filename + "_grid.obj").c_str(), "w");
     FILE *file6 = fopen( (input_filename + "_tmp.obj").c_str(), "w");
     FILE *file14 = fopen( (input_filename + "_coveragefield.obj").c_str(), "w");
