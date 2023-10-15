@@ -16,7 +16,12 @@ XIAOYU ZHANG, Beijing Institute of Spacecraft System Engineering, China
 
 TIMON RABCZUK, Institute of Structural Mechanics, Germany
 
-This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming](). written by HONGYI CAO.
+Corresponding author: gxu@hdu.edu.cn (Gang XU)
+first author & code implementer: hyc@hdu.edu.cn (HongYi CAO)
+
+
+
+This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming]().
 
 It can be use to calculate the offset result of a mesh.
 
