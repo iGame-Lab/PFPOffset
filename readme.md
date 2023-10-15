@@ -8,8 +8,15 @@ This project is a demo to achieve to algorithm of PFPOffset.
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-orange.svg)](https://github.com/rainbowwing/Thickening2/blob/main/LICENSE)
 ## 📚 Documentation
+This Paper author:
 
-This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming]().
+HONGYI CAO, GANG XU *, RENSHU GU, JINLAN XU, Hangzhou Dianzi University, China
+
+XIAOYU ZHANG, Beijing Institute of Spacecraft System Engineering, China
+
+TIMON RABCZUK, Institute of Structural Mechanics, Germany
+
+This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming](). written by HONGYI CAO.
 
 It can be use to calculate the offset result of a mesh.
 
