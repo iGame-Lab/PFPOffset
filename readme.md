@@ -17,6 +17,7 @@ XIAOYU ZHANG, Beijing Institute of Spacecraft System Engineering, China
 TIMON RABCZUK, Institute of Structural Mechanics, Germany
 
 Corresponding author: gxu@hdu.edu.cn (Gang XU)
+
 first author & code implementer: hyc@hdu.edu.cn (HongYi CAO)
 
 
