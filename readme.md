@@ -22,7 +22,7 @@ First author & Code implementer: hyc@hdu.edu.cn (HongYi CAO)
 
 
 
-This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming]().
+This code is a demo of the paper [A Parallel Feature-preserving Mesh Variable Offsetting Approach Based On Dynamic Programming](https://arxiv.org/abs/2310.08997).
 
 It can be use to calculate the offset result of a mesh.
 

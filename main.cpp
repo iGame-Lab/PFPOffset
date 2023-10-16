@@ -656,8 +656,8 @@ int main(int argc, char* argv[]) {
             for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
                 each_grid_cnt++;
                 if (each_grid_cnt % thread_num != now_id)continue; //todo 这里需要开启
-                if (each_grid_cnt % (thread_num * 5) == now_id)
-                    printf("face_generate_ray_detect_thread_pool %d/%d\n", each_grid_cnt, (int) frame_grid_mp.size());
+                //if (each_grid_cnt % (thread_num * 5) == now_id)
+                printf("face_generate_ray_detect_thread_pool %d: %d/%d\n",now_id ,each_grid_cnt, (int) frame_grid_mp.size());
 
                 unordered_map<unsigned long long , pair<int,int> > triangle_mapping;
                 std::list<K2::Triangle_3>l;
