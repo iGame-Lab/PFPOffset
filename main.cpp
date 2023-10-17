@@ -774,7 +774,7 @@ int main(int argc, char* argv[]) {
             Tree origin_face_tree(origin_face_list.begin(),origin_face_list.end());
 
             for (int i = 0; i < global_face_list.size(); i++) {
-                if(i %(thread_num*10) ==0)
+                if(i %(thread_num*1000) ==0)
                     cout << "global_face_list:" << i <<"/"<<global_face_list.size()<< endl;
                 if (i % thread_num != now_id)continue;
                 if(global_face_list[i].useful == false )continue;

@@ -81,7 +81,7 @@ void merge_initial(){
             kd_tree_points_move_limit.push_back(merge_limit[i]);
             kd_tree_list.emplace_back();
             kd_tree_which_source.emplace_back(i,j);
-            cout <<"前置map"<< i <<" "<<j <<" 第"<< mp[unique_hash_value(field_move_vertices[i][j])] <<" "<<  unique_hash_value(field_move_vertices[i][j]) << endl;
+            //cout <<"前置map"<< i <<" "<<j <<" 第"<< mp[unique_hash_value(field_move_vertices[i][j])] <<" "<<  unique_hash_value(field_move_vertices[i][j]) << endl;
         }
     }
     kd_tree_points_new.resize(kd_tree_points.size());
