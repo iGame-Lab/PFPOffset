@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
         }
         if(default_move <= 0) {
-            default_move = sum / mesh->FaceSize();
+            default_move = sum / mesh->FaceSize()/1.5;
             cout <<"default_move_dist:" <<default_move << endl;
             //exit(0);
         }
@@ -649,92 +649,101 @@ int main(int argc, char* argv[]) {
     // 接下去就是求交
 
     cout << " 接下去时求交"<<endl;//deckel.obj
+    queue<unordered_map <grid, GridVertex, grid_hash, grid_equal>::iterator > que;
+    for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
+        que.push(each_grid);
+    }
+    std::mutex que_mutex;
     std::vector <std::shared_ptr<std::thread> > face_generate_ray_detect_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {
         face_generate_ray_detect_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
-            int each_grid_cnt = -1;
-            for (auto each_grid = frame_grid_mp.begin(); each_grid != frame_grid_mp.end(); each_grid++) {
-                each_grid_cnt++;
-                if (each_grid_cnt % thread_num != now_id)continue; //todo 这里需要开启
-                //if (each_grid_cnt % (thread_num * 5) == now_id)
-                printf("face_generate_ray_detect_thread_pool %d: %d/%d\n",now_id ,each_grid_cnt, (int) frame_grid_mp.size());
+            while(true) {
+                std::unique_lock<std::mutex> lock(que_mutex);
+                if (que.empty()) {
+                    lock.unlock();
+                    return;
+                }
+                auto each_grid = que.front();
+                que.pop();
+                printf("face_generate_ray_detect_thread_pool %d: %d/%d\n", now_id,
+                       (int) frame_grid_mp.size() - que.size(), (int) frame_grid_mp.size());
 
-                unordered_map<unsigned long long , pair<int,int> > triangle_mapping;
-                std::list<K2::Triangle_3>l;
+                lock.unlock();
+                unordered_map<unsigned long long, pair<int, int> > triangle_mapping;
+                std::list<K2::Triangle_3> l;
                 K2::Point_3 small = iGameVertex_to_Point_K2(getGridVertex(each_grid->first, 0));
                 K2::Point_3 big = iGameVertex_to_Point_K2(getGridVertex(each_grid->first, 7));
                 std::vector<K2::Point_3> ps;
-                for(int i=0;i<8;i++){
-                    ps.push_back(getGridK2Vertex(small,big,i));
+                for (int i = 0; i < 8; i++) {
+                    ps.push_back(getGridK2Vertex(small, big, i));
                 }
 
                 CGAL::Polyhedron_3<K2> frame_poly;
                 PMP::polygon_soup_to_polygon_mesh(ps, each_grid_face_list, frame_poly, CGAL::parameters::all_default());
 
-                std::function<bool(K2::Point_3)> vertex_in_frame = [&](K2::Point_3 v){
+                std::function<bool(K2::Point_3)> vertex_in_frame = [&](K2::Point_3 v) {
                     return small.x() <= v.x() && v.x() <= big.x() &&
                            small.y() <= v.y() && v.y() <= big.y() &&
                            small.z() <= v.z() && v.z() <= big.z();
                 };
 
-                for(int i=0;i<each_grid->second.field_list.size();i++){
+                for (int i = 0; i < each_grid->second.field_list.size(); i++) {
                     int field_id = each_grid->second.field_list[i];
                     bool useful = false;
-                    if(coverage_field_list[field_id].in_field(midpoint(K2::Segment_3(ps[0],ps[7])))){
+                    if (coverage_field_list[field_id].in_field(midpoint(K2::Segment_3(ps[0], ps[7])))) {
                         useful = true;
                     }
-                    if(!useful)
-                    {
-                        if(vertex_in_frame(coverage_field_list[field_id].center)){
+                    if (!useful) {
+                        if (vertex_in_frame(coverage_field_list[field_id].center)) {
                             useful = true;
                         }
                     }
-                    if(!useful)
-                        useful = CGAL::Polygon_mesh_processing::do_intersect(*coverage_field_list[field_id].poly,frame_poly);
-                    if(useful){
-                        for(int j=0;j<coverage_field_list[field_id].renumber_bound_face_global_id.size();j++){
+                    if (!useful)
+                        useful = CGAL::Polygon_mesh_processing::do_intersect(*coverage_field_list[field_id].poly,
+                                                                             frame_poly);
+                    if (useful) {
+                        for (int j = 0; j < coverage_field_list[field_id].renumber_bound_face_global_id.size(); j++) {
                             int fid_global = coverage_field_list[field_id].renumber_bound_face_global_id[j];
                             K2::Point_3 v0 = global_vertex_list[global_face_list[fid_global].idx0];
                             K2::Point_3 v1 = global_vertex_list[global_face_list[fid_global].idx1];
                             K2::Point_3 v2 = global_vertex_list[global_face_list[fid_global].idx2];
-                            K2::Triangle_3 tri(v0,v1,v2);
-                            triangle_mapping[tri.id()] = {field_id,fid_global};
+                            K2::Triangle_3 tri(v0, v1, v2);
+                            triangle_mapping[tri.id()] = {field_id, fid_global};
                             l.push_back(tri);
                         }
                     }
                 }
-                Tree aabb_tree(l.begin(),l.end());//todo 明天把这里打开debug一下看看？？
+                Tree aabb_tree(l.begin(), l.end());
 
-                for(int i=0;i<each_grid->second.global_face_list.size();i++){
+                for (int i = 0; i < each_grid->second.global_face_list.size(); i++) {
                     int global_face_id = each_grid->second.global_face_list[i];
-                    if(global_face_list[global_face_id].useful == false)continue;
+                    if (global_face_list[global_face_id].useful == false)continue;
                     K2::Point_3 v0 = global_vertex_list[global_face_list[global_face_id].idx0];
                     K2::Point_3 v1 = global_vertex_list[global_face_list[global_face_id].idx1];
                     K2::Point_3 v2 = global_vertex_list[global_face_list[global_face_id].idx2];
 
-                    K2::Vector_3 ray_vec = K2::Triangle_3(v0,v1,v2).supporting_plane().orthogonal_vector();
+                    K2::Vector_3 ray_vec = K2::Triangle_3(v0, v1, v2).supporting_plane().orthogonal_vector();
 
-                    K2::Ray_3 ray(global_face_list[global_face_id].center,-ray_vec);
-                    std::list< Tree::Intersection_and_primitive_id<K2::Ray_3>::Type> intersections;
-                    aabb_tree.all_intersections(ray,std::back_inserter(intersections));
-                    for(auto item : intersections) {
-                        pair<int,int> belong = triangle_mapping[item.second->id()];
+                    K2::Ray_3 ray(global_face_list[global_face_id].center, -ray_vec);
+                    std::list<Tree::Intersection_and_primitive_id<K2::Ray_3>::Type> intersections;
+                    aabb_tree.all_intersections(ray, std::back_inserter(intersections));
+                    for (auto item: intersections) {
+                        pair<int, int> belong = triangle_mapping[item.second->id()];
                         int which_field = belong.first;
                         int which_id = belong.second;
-                        if(which_field == global_face_list[global_face_id].field_id)continue;
-                        if(const K2::Point_3* p = boost::get<K2::Point_3>(&(item.first))){
-                            if(*p != global_face_list[global_face_id].center)
-                                global_face_list[global_face_id].ray_detect_map[which_field].emplace_back(*p,which_id);
+                        if (which_field == global_face_list[global_face_id].field_id)continue;
+                        if (const K2::Point_3 *p = boost::get<K2::Point_3>(&(item.first))) {
+                            if (*p != global_face_list[global_face_id].center)
+                                global_face_list[global_face_id].ray_detect_map[which_field].emplace_back(*p, which_id);
 //                            else
 //                                global_face_list[global_face_id].special_face_id.insert(which_field);
-                        }
-                        else{
+                        } else {
                             global_face_list[global_face_id].special_field_id.insert(which_field);
                         }
                     }
                 }
-
             }
+
         },i);
     }
     for(int i=0;i<thread_num;i++)
