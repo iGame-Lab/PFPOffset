@@ -1,5 +1,5 @@
 #pragma once
-#include"Edge.h"
+#include"Vertex.h"
 #include<algorithm>
 namespace MeshKernel {
 	// 网格中的面片

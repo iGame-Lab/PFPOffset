@@ -28,7 +28,10 @@ vector<int> get_sub_state(int state,int face_list_size){
 }
 
 vector<MeshKernel::iGameVertex> solve_by_dp(MeshKernel::iGameVertexHandle vh,vector<MeshKernel::iGameFaceHandle> neighbor_face_list){
-    if(neighbor_face_list.size()>=20)exit(0);
+    if(neighbor_face_list.size()>=21) {
+        cout << "neighbor_face_list.size()=" <<neighbor_face_list.size() <<">21 : this mesh please do remeshing before" << endl;
+        exit(0);
+    }
     vector<double>dp;
     vector<int>dp_source;
     vector<MeshKernel::iGameVertex>dp_osqp_answer;

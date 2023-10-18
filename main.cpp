@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
         }
         if(default_move <= 0) {
-            default_move = sum / mesh->FaceSize()/1.5;
+            default_move = min(min(x_len,y_len),z_len)/1000;
             cout <<"default_move_dist:" <<default_move << endl;
             //exit(0);
         }
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
         if(mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist <= 0){// deal Illegal input
             mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = default_move;
         }
-        cout <<"facei "<<  mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist<<endl;
+        cout <<"facei "<<  mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist<<" "<<mesh->FastNeighborFhOfFace_[i].size()<< endl;
 //        fprintf(file50,"f %d %d %d %.7lf\n",mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0)+1,
 //                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)+1,
 //                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)+1,
