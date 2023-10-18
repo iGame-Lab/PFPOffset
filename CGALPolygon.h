@@ -72,15 +72,15 @@ public:
         std::vector<K2::Point_3> ps;
         std::vector<std::vector<std::size_t> > fs;
         for (int i = 0; i < mesh->VertexSize(); i++) {
-            ps.emplace_back(mesh->vertices(MeshKernel::iGameVertexHandle(i)).x(),
-                            mesh->vertices(MeshKernel::iGameVertexHandle(i)).y(),
-                            mesh->vertices(MeshKernel::iGameVertexHandle(i)).z());
+            ps.emplace_back(mesh->fast_iGameVertex[MeshKernel::iGameVertexHandle(i)].x(),
+                            mesh->fast_iGameVertex[MeshKernel::iGameVertexHandle(i)].y(),
+                            mesh->fast_iGameVertex[MeshKernel::iGameVertexHandle(i)].z());
 
         }
         for (int i = 0; i < mesh->FaceSize(); i++) {
-            fs.push_back({static_cast<unsigned long long>(mesh->faces(MeshKernel::iGameFaceHandle(i)).vh(0).idx()),
-                          static_cast<unsigned long long>(mesh->faces(MeshKernel::iGameFaceHandle(i)).vh(1).idx()),
-                          static_cast<unsigned long long>(mesh->faces(MeshKernel::iGameFaceHandle(i)).vh(2).idx())});
+            fs.push_back({static_cast<unsigned long long>(mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0).idx()),
+                          static_cast<unsigned long long>(mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1).idx()),
+                          static_cast<unsigned long long>(mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2).idx())});
         }
         poly = new CGAL::Polyhedron_3<K2>();
         PMP::polygon_soup_to_polygon_mesh(ps, fs, *poly, CGAL::parameters::all_default());

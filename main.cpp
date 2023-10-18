@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 
     mesh->initBBox();
-    mesh->build_fast();
+   // mesh->build_fast();
     auto start_clock = std::chrono::high_resolution_clock::now();
     cout <<"mesh->build_fast() succ" << endl;
     //double default_move_dist = 0.05;
@@ -216,12 +216,12 @@ int main(int argc, char* argv[]) {
                     cout << "one_ring_select_thread_pool "<< i << endl;
 
                 set<int>neighbor_field;
-                for(int j=0;j<3;j++) {
-                    for (auto neighbor_id: mesh->FastNeighborFhOfEdge_[mesh->fast_iGameFace[i].eh(j)]) {
-                        if(neighbor_id == i)continue;
-                        neighbor_field.insert(neighbor_id);
-                    }
+
+                for (auto neighbor_id: mesh->FastNeighborFhOfFace_[i]) {
+                    if(neighbor_id == i)continue;
+                    neighbor_field.insert(neighbor_id);
                 }
+
 
                 vector<K2::Triangle_3>neighbor_face;
                 for(auto neighbor_id: neighbor_field){
@@ -326,9 +326,9 @@ int main(int argc, char* argv[]) {
 
     double max_move = 0;
     double min_move = 1e10;
-    for (auto i: mesh->allfaces()) {
-        max_move = max(max_move, abs(i.second.move_dist));
-        min_move = min(min_move, abs(i.second.move_dist));
+    for (auto i: mesh->fast_iGameFace) {
+        max_move = max(max_move, abs(i.move_dist));
+        min_move = min(min_move, abs(i.move_dist));
     }
 
     stx = mesh->BBoxMin.x() - max_move;
@@ -369,7 +369,7 @@ int main(int argc, char* argv[]) {
                 if (face_id % 1000 == 0)
                     printf("%d/%d\n", face_id, fsize);
                 auto fh = make_pair(MeshKernel::iGameFaceHandle(face_id),
-                                    mesh->faces(MeshKernel::iGameFaceHandle(face_id)));
+                                    mesh->fast_iGameFace[face_id]);
                 MeshKernel::iGameVertex center = (mesh->fast_iGameVertex[fh.second.vh(0)] +
                                                   mesh->fast_iGameVertex[fh.second.vh(1)] +
                                                   mesh->fast_iGameVertex[fh.second.vh(2)]) / 3;
@@ -384,9 +384,10 @@ int main(int argc, char* argv[]) {
                 grid now = vertex_to_grid(center);
                 vector <MeshKernel::iGameFaceHandle> face_and_neighbor;
                 face_and_neighbor.push_back(fh.first);
-                for (auto i: mesh->NeighborFh(fh.first)) {
+                for (auto i: mesh->FastNeighborFhOfFace_[fh.first]) {
                     face_and_neighbor.push_back(i);
                 }
+
 
                 queue <grid> q;
                 unordered_set <grid,grid_hash,grid_equal> is_visit;
