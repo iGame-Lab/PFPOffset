@@ -105,17 +105,17 @@ void merge_initial(){
             }
         }
     }
-    FILE *file16_6 = fopen( ("../data/debug_16.6.obj"), "w");cout <<"open succ"<<endl;
+    //FILE *file16_6 = fopen( ("../data/debug_16.6.obj"), "w");cout <<"open succ"<<endl;
     for(int i=0;i<kd_tree_points.size();i++){
         unsigned long long hash_value = unique_hash_value(kd_tree_points[i]);
         //cout << "differ equal: "<<(hash_value != dsu.find_root(hash_value)) << endl;
         int source_id = mp[dsu.find_root(hash_value)];
         pair<int,int>which = kd_tree_which_source[source_id];
-        if(hash_value != dsu.find_root(hash_value)){
-            fprintf(file16_6,"v %lf %lf %lf\n",mesh->fast_iGameVertex[which.first].x(),
-                    mesh->fast_iGameVertex[which.first].y(),
-                    mesh->fast_iGameVertex[which.first].z());
-        }
+//        if(hash_value != dsu.find_root(hash_value)){
+//            fprintf(file16_6,"v %lf %lf %lf\n",mesh->fast_iGameVertex[which.first].x(),
+//                    mesh->fast_iGameVertex[which.first].y(),
+//                    mesh->fast_iGameVertex[which.first].z());
+//        }
         kd_tree_list[source_id].push_back(i);
         kd_tree_points_new[i] = kd_tree_points[i];
     }

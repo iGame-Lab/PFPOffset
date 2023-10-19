@@ -36,7 +36,7 @@ MeshKernel::iGameVertex do_quadratic_error_metric_check(MeshKernel::iGameVertexH
                     - mesh->fast_iGameVertex[mesh->fast_iGameFace[f].vh(0)]) %
                    (mesh->fast_iGameVertex[mesh->fast_iGameFace[f].vh(2)]
                     - mesh->fast_iGameVertex[mesh->fast_iGameFace[f].vh(0)])).normalize();
-
+        //cout <<"normal "<< normal.x() <<" "<< normal.y() <<" "<< normal.z() << endl;
         if (running_mode == 2)
             normal = normal * -1;
 //        MeshKernel::iGameVertex new_v = v + normal * mesh->fast_iGameFace[f].move_dist;

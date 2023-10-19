@@ -99,8 +99,9 @@ int main(int argc, char* argv[]) {
             sum += min(minx,maxx);
 
         }
+        avg_edge_limit = sum/mesh->FaceSize();
         if(default_move <= 0) {
-            default_move = min(min(x_len,y_len),z_len)/1000;
+            default_move = sum/mesh->FaceSize()/2;
             cout <<"default_move_dist:" <<default_move << endl;
             //exit(0);
         }
@@ -160,6 +161,7 @@ int main(int argc, char* argv[]) {
     for(int i=0;i<thread_num;i++) {
         dp_thread_pool[i] = make_shared<std::thread>([&](int now_id) {
             for (int i = 0; i < mesh->VertexSize(); i++) {
+            //for (int i = 524; i < 525; i++) {
                 if (i % thread_num != now_id)continue;
                 if (i % 20 == 0)
                     cout << "dp: " << i << "/"<<mesh->VertexSize()<< endl;
@@ -207,6 +209,8 @@ int main(int argc, char* argv[]) {
 //            break;
 //        }
     }
+//    fclose(file14);
+//    exit(0);
 
     std::vector <std::shared_ptr<std::thread> > one_ring_select_thread_pool(thread_num);
     for(int i=0;i<thread_num;i++) {
