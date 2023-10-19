@@ -131,6 +131,7 @@ int main(int argc, char* argv[]) {
             mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist = default_move;
         }
         cout <<"facei "<<  mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist<<" "<<mesh->FastNeighborFhOfFace_[i].size()<< endl;
+        //myeps = min(myeps,mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].move_dist);
 //        fprintf(file50,"f %d %d %d %.7lf\n",mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(0)+1,
 //                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(1)+1,
 //                mesh->fast_iGameFace[MeshKernel::iGameFaceHandle(i)].vh(2)+1,
@@ -830,7 +831,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
 
-                    if(sqrt(CGAL::to_double(origin_face_tree.squared_distance(centroid(K2::Triangle_3(v0,v1,v2))))) < CGAL::Epeck::FT(myeps)){
+                    if(origin_face_tree.squared_distance(centroid(K2::Triangle_3(v0,v1,v2))) <= CGAL::Epeck::FT(0)){
                         global_face_list[i].useful = -300;
                     }
                 }
